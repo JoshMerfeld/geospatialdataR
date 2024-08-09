@@ -51,6 +51,19 @@ details > summary {
   color: $accent2;
 }
 
+.reveal .slide aside .aside-footnotes {
+  font-size: 20px;
+  color: mix($kdisgreen, white, 75%);
+}
+.reveal .slide aside, .reveal .slide div.aside {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  font-size: 0.5em;
+  color: mix($kdisgreen, white, 75%);
+}
+
+
 .reveal a {
   line-height: 1.5em;
 }
@@ -343,4 +356,3 @@ details > summary {
   margin-bottom: 0 !important;
   margin-top: 0 !important;
 }
-

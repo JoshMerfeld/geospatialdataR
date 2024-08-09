@@ -10,6 +10,7 @@ date: today
 date-format: long
 format: 
   revealjs:
+    logo: logo.png
     self-contained: true
     slide-number: false
     progress: false
@@ -55,21 +56,137 @@ library(tidyverse)
 
 
 
-## Let's get started!
+## Syllabus
 
-- Let's get started with the hands-on session.
-
-- As a first step, I'd like to hear from all of you:
-  - How much experience do you have using R?
-  - This is all experience, not just with SAE
+- Some important dates:
 
 
+
+
+
+
+
+# What can we do with<br>geospatial data? {#color-slide background-image="week1assets/deforestation.gif"}
+
+```{css, echo=FALSE}
+#color-slide, 
+#color-slide h1 {
+ color: white;
+ text-align: right;
+}
+```
+
+
+
+
+## Geospatial data is everywhere
+
+- One estimate says that 100 TB of only weather data are generated every single day^[https://www.ibm.com/topics/geospatial-data]
+  - This means there is a lot of data to work with!
+  - Note that this is also problematic, since it can be difficult to work with such large datasets<br><br>
+  
+- Geospatial data is used in a variety of fields
+  - Agriculture
+  - Urban planning
+  - Environmental science
+  - Public health
+  - Transportation
+  - And many more!
+  
+  
+
+
+
+
+## Geospatial data in my own work
+
+- I use geospatial data quite a bit<br><br>
+
+- Let's go through some examples!
+  
+  
+
+
+
+
+## Poverty mapping
+
+:::: {.columns}
+
+::: {.column width="60%"}
+
+- One of the things I work on is poverty mapping
+  - This is the process of estimating poverty rates at a very granular level
+  - This is important for targeting resources and understanding the distribution of poverty
+  - I sometimes use geospatial data to do this<br><br>
+  
+- Why geospatial data?
+  - Because it is often the only variable available in less developed countries!
+  - Survey data alone isn't sufficient to do it at a granular level
+  
+:::
+
+::: {.column width="40%"}
+![](week1assets/povmap.png){fig-align="right"}
+
+:::
+
+::::
+  
+  
+
+
+
+
+## How does pollution affect different outcomes?
+
+
+:::: {.columns}
+
+::: {.column width="30%"}
+
+- How is pollution measured?
+  - Weather stations
+  - Satellites
+  - Image to the right comes from satellite data^[https://globalnews.ca/news/1421115/nasa-satellite-sees-air-quality-improvement-in-u-s/]
+  
+- I have research on effects of pollution on agriculture and mental health
+  
+:::
+
+::: {.column width="70%"}
+![](week1assets/pollution.gif){fig-align="center"}
+
+:::
+
+::::
+  
+  
+
+
+
+
+## Construction of roads in India
+
+![](week1assets/roads.png){fig-align="center"}
+
+
+
+  
+
+
+
+
+
+
+
+# ![](week1assets/Rlogo){width=70%}
 
 
 
 ## Some things to note
 
-- We will be using [<b>RStudio</b>](https://posit.co/download/rstudio-desktop/) throughout the workshops
+- We will be using [<b>RStudio</b>](https://posit.co/download/rstudio-desktop/) throughout the class
   - There are other options you are welcome to use (VS Code is the most common alternative)
   
 - Two general "data cleaning" pipelines:
@@ -91,14 +208,14 @@ library(tidyverse)
 
 
 
-## {background-image="week1assets/rstudio1.png"}
-## {background-image="week1assets/rstudio2.png"}
-## {background-image="week1assets/rstudio3.png"}
-## {background-image="week1assets/rstudio4.png"}
-## {background-image="week1assets/rstudio5.png"}
-## {background-image="week1assets/rstudio6.png"}
-## {background-image="week1assets/rstudio7.png"}
-## {background-image="week1assets/rstudio8.png"}
+## {background-image="week1assets/rstudio1.png" background-size="contain" background-color="black"}
+## {background-image="week1assets/rstudio2.png" background-size="contain" background-color="black"}
+## {background-image="week1assets/rstudio3.png" background-size="contain" background-color="black"}
+## {background-image="week1assets/rstudio4.png" background-size="contain" background-color="black"}
+## {background-image="week1assets/rstudio5.png" background-size="contain" background-color="black"}
+## {background-image="week1assets/rstudio6.png" background-size="contain" background-color="black"}
+## {background-image="week1assets/rstudio7.png" background-size="contain" background-color="black"}
+## {background-image="week1assets/rstudio8.png" background-size="contain" background-color="black"}
 
 
 
@@ -229,6 +346,20 @@ library(tidyverse)
 
 - Note that the first part is a comment I've added to the script.
   - I make a lot of comments!
+
+
+
+
+# R Markdown
+
+
+
+
+
+
+
+
+
 
 
 
