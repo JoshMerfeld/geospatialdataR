@@ -6,7 +6,7 @@
 
 ## Course description
 
-
+This course will provide an introduction to geospatial data with R. We will review different data formats (e.g. shapefiles, rasters, etc.), as well as methods to extract and visualize the data.
 
 
 ## Resources for learning R
@@ -21,6 +21,9 @@ In addition to online resources, TA sections in this course will be devoted to h
 
 ## Resources for geospatial data in R
 
+- [An Introduction to Spatial Data Analysis and Visualisation in R](https://www.spatialanalysisonline.com/An%20Introduction%20to%20Spatial%20Data%20Analysis%20in%20R.pdf): This document is a bit dated but provides a nice review of geospatial data. For up-to-date R functions, please use the following two resources.
+- [The sf package](https://r-spatial.github.io/sf/): This website provides an overview of the sf package, which we will use for visualizing maps.
+- [The terra package](https://rspatial.org/pkg/): This website provides an excellent overview of geospatial functions available in the terra package.
 
 
 ## Other resources
@@ -30,12 +33,22 @@ There are also two slide decks that are extremely helpful:
 
 ## Weekly slides
 
-You can find the slides (and any data we will be using) for each week under their respective folders (weeks/). Most weeks will have just a single slide deck. Note that in each week's folder, you can also find the raw .Rmd file that I used to create the slides. You might find these helpful, though you are by no means required to look at them.
+You can find the slides (and any data we will be using) for each week in this folder. Most weeks will have just a single slide deck. Note that you can also find the raw .qmd file that I used to create the slides. You might find these helpful, though you are by no means required to look at them.
 
+- [Week 1](week1.html)
+- Week 2
+- Week 3
+- Week 4
+- Week 5
+- Week 6
+- Week 7
+- Week 8
+- Week 9
+- Week 10
 
 
 ## Assignments
 
-I will also post your assignments here, under the [assignments folder](assignments/).
+I will post your assignments here, under the [assignments folder](assignments/).
 
 
