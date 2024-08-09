@@ -1,10 +1,11 @@
 ---
 title: "Geospatial Data in R"
+title-slide-attributes:
+  data-background-image: week1assets/titlebackground.jpg
+  data-background-size: cover
 subtitle: "Week 1 - Review of R and R Markdown"
 author: 
   - name: Prof Josh Merfeld
-    affiliations: 
-      - KDI School of Public Policy and Management
 date: today
 date-format: long
 format: 
@@ -12,7 +13,7 @@ format:
     self-contained: true
     slide-number: false
     progress: false
-    theme: [serif, custom.scss]
+    theme: [serif, customweek1.scss]
     width: 1500
     height: 1500*(9/16)
     code-copy: true
@@ -36,15 +37,19 @@ library(tidyverse)
 
 
 
+# Introduction
+
+<font size = "+10"> Syllabus and contents </font>
+
 
 ## My slides
 
 - Before we get into it, I have put all of my material on the web<br><br>
 
-- You can find my slides (along with copy-pasteable code) AND the data I'm using on my GitHub repository:
-  - [https://github.com/JoshMerfeld/nairobiworkshops](https://github.com/JoshMerfeld/nairobiworkshops)
+- You can find my slides (along with copy-pasteable code) on my GitHub repository:
+  - [https://github.com/JoshMerfeld/geospatialdataR](https://github.com/JoshMerfeld/geospatialdataR)
   - Scroll down to the bottom and you'll find all of the links you'll need.
-  - I'd suggest you have these open during the workshop to make things easier.
+  - I'd suggest you have this page open during classes. I'll sometimes ask you to use something on the repo.
 
 
 
@@ -86,14 +91,14 @@ library(tidyverse)
 
 
 
-## {background-image="day1assets/rstudio1.png"}
-## {background-image="day1assets/rstudio2.png"}
-## {background-image="day1assets/rstudio3.png"}
-## {background-image="day1assets/rstudio4.png"}
-## {background-image="day1assets/rstudio5.png"}
-## {background-image="day1assets/rstudio6.png"}
-## {background-image="day1assets/rstudio7.png"}
-## {background-image="day1assets/rstudio8.png"}
+## {background-image="week1assets/rstudio1.png"}
+## {background-image="week1assets/rstudio2.png"}
+## {background-image="week1assets/rstudio3.png"}
+## {background-image="week1assets/rstudio4.png"}
+## {background-image="week1assets/rstudio5.png"}
+## {background-image="week1assets/rstudio6.png"}
+## {background-image="week1assets/rstudio7.png"}
+## {background-image="week1assets/rstudio8.png"}
 
 
 

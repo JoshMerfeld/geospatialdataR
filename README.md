@@ -35,7 +35,7 @@ There are also two slide decks that are extremely helpful:
 
 You can find the slides (and any data we will be using) for each week in this folder. Most weeks will have just a single slide deck. Note that you can also find the raw .qmd file that I used to create the slides. You might find these helpful, though you are by no means required to look at them.
 
-- [Week 1](week1.html)
+- [Week 1](https://joshmerfeld.github.io/geospatialdataR/week1#/title-slide)
 - Week 2
 - Week 3
 - Week 4
