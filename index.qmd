@@ -29,5 +29,5 @@ library(tidyverse)
 
 ## Welcome to the website!
 
-- Here, you can find all the slides and data used in our `Geospatial Data in R` class. These will be updated in time.
+- Here, you can find the slides and data used in Geospatial data analysis in R
 

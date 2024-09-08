@@ -33,18 +33,20 @@ There are also two slide decks that are extremely helpful:
 
 ## Weekly slides
 
-You can find the slides (and any data we will be using) for each week in this folder. Most weeks will have just a single slide deck. Note that you can also find the raw .qmd file that I used to create the slides. You might find these helpful, though you are by no means required to look at them.
+You can find the slides (and any data we will be using) for each week under their respective folders (weeks/). Most weeks will have just a single slide deck. Note that in each week's folder, you can also find the raw .Rmd file that I used to create the slides. You might find these helpful, though you are by no means required to look at them.
 
-- [Week 1](https://joshmerfeld.github.io/geospatialdataR/week1#/title-slide)
-- Week 2
-- Week 3
-- Week 4
-- Week 5
-- Week 6
-- Week 7
-- Week 8
-- Week 9
-- Week 10
+- Week 1: You can find the slides for the the week [Day 1 slides](https://joshmerfeld.github.io/geospatialdataR/week1both.html).
+  - You can find the data for the second class in the week 1 folder or by clicking [here](weeks/week1/data.csv) (you can download the csv in the upper-right-hand corner).
+- Week 2: TBD
+- Week 3: TBD
+- Week 4: TBD
+- Week 5: TBD
+- Week 5: TBD
+- Week 6: TBD
+- Week 7: TBD
+- Week 8: TBD
+- Week 9: TBD
+- Week 10: TBD
 
 
 ## Assignments
