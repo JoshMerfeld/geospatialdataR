@@ -20,20 +20,11 @@ format:
     code-overflow: wrap
     highlight-style: github
 execute:
-  echo: false
+  echo: true
   warnings: false
 ---
 
 ```{r setup, include=FALSE}
-
-def.chunk.hook  <- knitr::knit_hooks$get("chunk")
-knitr::knit_hooks$set(chunk = function(x, options) {
-  x <- def.chunk.hook(x, options)
-  #ifelse(options$size != "a", paste0("\n \\", "tiny","\n\n", x, "\n\n \\normalsize"), x)
-  ifelse(options$size != "normalsize", paste0("\n \\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
-})
-
-knitr::opts_chunk$set(echo = FALSE, dev = "png") # NOTE: switched to png instead of pdf to decrease size of the resulting pdf
 
 library(tidyverse)
 library(nycflights13)
@@ -437,10 +428,10 @@ knitr::include_graphics(
 
 - R has a few different types of objects
   - The most common are vectors, matrices, and data frames
-    - A "tibble" is a type of data frame used by the tidyverse package (more below)
+    - A "tibble" is a type of data frame used by the `tidyverse` package (more below)
   - We will use data frames almost exclusively since we are working with datasets, but vectors are common, too
-- You can create a vector using the c() function:
-  - Note how we create a new object using the assignment operator, <-. You can also use =.^[They are technically different. But you can generally treat them as the same.]
+- You can create a vector using the `c()` function:
+  - Note how we create a new object using the assignment operator, `<-`. You can also use `=`.^[They are technically different. But you can generally treat them as the same.]
 
 
 ```{r}
@@ -453,7 +444,7 @@ vec
 
 ## Object types
 
-- You can check what type of object something is by using the class() function
+- You can check what type of object something is by using the `class()` function
   - For example, if I want to check what type of object vec is, I would write `class(vec)`
   - Note that the output is "numeric"
   - This is because vec is a vector of numbers
@@ -565,10 +556,10 @@ This will load the tidyverse package.
 - Go to the class website and download the data for today.
   - Put it in your WORKING DIRECTORY (where the script is)
 
-- We will use the read_csv() function to load the data
+- We will use the `read_csv()` function to load the data
   - This function is part of the tidyverse package
   - It will create a data frame
-  - We need to NAME the object (data frame). As before, note the assignment operator (<-). You can actually use = though.
+  - We need to NAME the object (data frame). As before, note the assignment operator (`<-`). You can actually use `=` though.
 
 ```{r data, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
 
@@ -625,9 +616,7 @@ knitr::include_graphics(
 - We can also see the names of the columns like this:
 
 ```{r}
-
 colnames(data)
-
 ```
 
 - This is the kind of thing I might do in the console since it's not really required for the script.
@@ -673,7 +662,7 @@ str(data)
 - One big difference between the two is that Stata generally only has one data frame in memory at a time
   - This means that you can call a variable *without referencing the data frame*
 - In R, if you want to look at a variable, you have to tell R which data frame it is in
-  - This is done with the $ operator
+  - This is done with the `$` operator
   - For example, if I want to look at the variable "age" in the data frame "data", I would write `data$age`
   - Let's look at summary statistics for age:
 
@@ -709,7 +698,7 @@ summary(data)
   - We use the row and column number, in that order.
   - For example, if I want the first row and second column of a matrix $X$, mathematically I could write $X_{1,2}$
 - We do *the same thing in R*
-- If I want the first row and second column of the data frame "data", I would write data[1,2]
+- If I want the first row and second column of the data frame "data", I would write `data[1,2]`
   - Note that we use square brackets instead of parentheses
   - Note that we use a comma to separate the row and column
 
@@ -725,7 +714,7 @@ data[1,2]
 ## Calling columns of a data frame (matrix)
 
 - We can call entire columns of a data frame by leaving the row blank
-  - For example, if I want the second column of the data frame "data", I would write data[,2]
+  - For example, if I want the second column of the data frame "data", I would write `data[,2]`
   - Note that the second column is the ability variable
 
 ```{r}
@@ -744,7 +733,7 @@ data[,2]
 
 - Missing variables are denoted by NA
   - This is different from Stata, which uses a period (.)
-- Note that this is only how the PROGRAM stores missing variables. Sometimes the data itself has different missing values. \textcolor{red}{PAY ATTENTION!}
+- Note that this is only how the PROGRAM stores missing variables. Sometimes the data itself has different missing values.
 - For example, take a look at the first ten rows of the data frame (also note how I call the first ten rows and leave out the first column!):
 
 ```{r}
@@ -787,7 +776,7 @@ unique(data$educyears)
   - What if we want to replace those with missing, instead?
 - Let's talk through the following code
   - First note how it refers to a specific column and then a specific row
-  - Also note how it uses two equal signs (==) to check whether the value is "Not Mentioned"
+  - Also note how it uses two equal signs (`==`) to check whether the value is "Not Mentioned"
     - This is similar to Stata!
 
 ```{r replace, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
@@ -914,7 +903,7 @@ Oh no! what happened?
 
 
 ## Functions and mutate()
-We can combine the mean() and sd() functions within mutate to create a new, standardized variable:
+We can combine the `mean()` and `sd()` functions within mutate to create a new, standardized variable:
 
 ```{r mutate_std2, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"} 
 data <- data |>
@@ -1172,7 +1161,7 @@ ggplot() +
 - These slides were all created in R Markdown
 
 - My papers are written in R Markdown (well, some of them are, anyway)
-  - [\textcolor{kdisgreen}{\textbf{Here}}](https://joshmerfeld.github.io/assets/papers/pollution2023.pdf) is an example
+  - [Here](https://joshmerfeld.github.io/assets/papers/pollution2023.pdf) is an example
 
 - Yihui Xie, J. J. Allaire, and Garrett Grolemund have an awesome -- free! -- resource on R Markdown, [\textcolor{kdisgreen}{\textbf{R Markdown: The Definitive Guide}}](https://bookdown.org/yihui/rmarkdown/)
 
@@ -1182,9 +1171,14 @@ ggplot() +
 
 ## Installing R Markdown
 
-You'll need to install R Markdown. You can do this in the console:
+You'll need to install LaTeX and R Markdown. You can do this in the console:
 
 ```{r installrmarkdown, echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE, size = "tiny"}
+# first do this
+install.packages('tinytex')
+# then do this
+tinytex::install_tinytex()  # install TinyTeX
+# finally do this
 install.packages("rmarkdown")
 ```
 
@@ -1286,7 +1280,7 @@ knitr::include_graphics(
   - DO NOT DELETE THE `---` AT THE TOP AND BOTTOM OF THE YAML HEADER!
   
 - You can change the title and date as you please
-  - For today's date, you can use Sys.Date() within R inline code (more in a second):
+  - For today's date, you can use `Sys.Date()` within R inline code (more in a second):
 
 ```{r date, echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE, size = "tiny", out.width = "55%", fig.align = "center"}
 date: "`r Sys.Date()`"
@@ -1338,7 +1332,6 @@ data <- read_csv("week1data/data.csv")
 Here is an example of a regular code chunk.
 
 ````markdown
-
 `r ''````{r chunkexample, include = TRUE}
 # note that I named the chunk.
 # all chunks must have a UNIQUE name.
@@ -1439,16 +1432,15 @@ Don't do this.
 ## You can add R inline code
 
 
-````markdown
-#| output: asis
-- You can add R inline code using the $`r'$ operator.
-  - For example, if I want to add the date, I can write ` r Sys.Date()` (no space between the ` and the r)
-  - There are ` r ncol(flights)` columns in the flights data. (no space between the ` and the r)
-  - There are ` r nrow(flights)` rows in the flights data. (no space between the ` and the r)
+````{markdown}
+- You can add R inline code using the `r' operator.
+  - If I want to add the date, I can write `r Sys.Date()`
+  - There are `r ncol(flights)` columns in the flights data
+  - There are `r nrow(flights)` rows in the flights data
 ````
 
 - You can add R inline code using the $`r'$ operator.
-  - For example, if I want to add the date, I can write `r Sys.Date()`
+  - If I want to add the date, I can write `r Sys.Date()`
   - There are `r ncol(flights)` columns in the flights data.
   - There are `r nrow(flights)` rows in the flights data.
 
@@ -1461,15 +1453,36 @@ Don't do this.
 
 ## Enumerated lists/bullets
 
-- I like lists.
-  - With indentations.
-1. Really, I do.
 
-````markdown
+````{markdown}
 - I like lists.
   - With indentations.
-1. Really, I do.
+    - Even two!
 ````
+
+
+- I like lists.
+  - With indentations.
+    - Even two!
+
+
+
+
+
+## Enumerated lists/bullets
+
+
+````{markdown}
+1. I don't use many numbered lists.
+2. Do you?
+    - Note this has two tabs!
+````
+
+
+1. I don't use many numbered lists.
+2. Do you?
+    - Note this has two tabs!
+
 
 
 
@@ -1477,57 +1490,44 @@ Don't do this.
 
 ## latex
 
-- R Markdown uses latex to create pdfs. This allows you to do some cool things.
+- R Markdown uses LaTeX to create pdfs. This allows you to do some cool things.
 
-- For example, it is easy to add equations with latex, using \$:
 
-$y = x + \varepsilon$
+
+
 
 ````markdown
-- For example, it is easy to add equations with latex, using \$:
+- For example, it is easy to add equations with latex, using $:
 
 $y = x + \varepsilon$
 ````
+- For example, it is easy to add equations with latex, using \$:
+
+$y = x + \varepsilon$
 
 
 
+## LaTeX
 
-## latex
+
+````markdown
+- I can center it, too:
+
+$$y = x + \varepsilon$$ 
+````
 
 - I can center it, too:
 
 $$y = x + \varepsilon$$ 
 
-````markdown
-- I can center it, too:
-
-$$y = x + \varepsilon$$ 
-````
-
-
-
-
-## latex
-
-\begin{gather}\label{eq1} y = x + \varepsilon \end{gather}
-- In Equation 1
-
-
-````markdown
-\begin{gather}\label{eq1} y = x + \varepsilon \end{gather}
-- In Equation \autoref{eq1}
-````
-
-
-- You might think, so what? Well what's cool is that if we add equations before it, the number will automatically update!
 
 
 
 
 
-## latex
+## LaTeX
 
-- latex is particularly helpful for rendering math
+- LaTeX is particularly helpful for rendering math
   
 - You can find a handy reference guide [here](https://icl.utk.edu/~mgates3/docs/latex.pdf) (https://icl.utk.edu/~mgates3/docs/latex.pdf)
 
@@ -1538,9 +1538,9 @@ $$y = x + \varepsilon$$
 ## Creating tables
 
 - There are lots of ways to create tables in R Markdown.
-  - I will show you one way using the kable() function in the knitr package.
+  - I will show you one way using the `kable()` function in the knitr package.
   - You do not need to download this package, it is already installed with R Markdown.
-    - There is extra functionality in the kableExtra package. You need to download this and load it if you want to use it.
+    - There is extra functionality in the `kableExtra` package. You need to download this and load it if you want to use it.
 
 
 
@@ -1550,16 +1550,15 @@ $$y = x + \varepsilon$$
 
 ```{r}
 summat <- flights |> 
-            # this groups ROWS based on their origin value
-            group_by(origin) |> 
-            # create means by group
-            summarize(avg_dep_delay = mean(dep_delay, na.rm = T),
-                      avg_arr_delay = mean(arr_delay, na.rm = T),
-                      avg_air_time = mean(air_time, na.rm = T),
-                      flights = n())
+  # this groups ROWS based on their origin value
+  group_by(origin) |> 
+  # create means by group
+  summarize(avg_dep_delay = mean(dep_delay, na.rm = T),
+            avg_arr_delay = mean(arr_delay, na.rm = T),
+            avg_air_time = mean(air_time, na.rm = T),
+            flights = n())
 # output 
-kable(summat,
-      align = "cccc")
+kable(summat, align = "cccc")
 ```
 
 
@@ -1586,7 +1585,11 @@ colnames(summat) <- c("Origin", "Departure Delay", "Arrival Delay", "Flight Time
 kable(summat, caption = "Averages by origin (minutes)",
       align = "ccc", linesep = "", digits = 2, format.args = list(big.mark = ","),
       booktabs = TRUE) |> # this is from kablextra. You don't have to use it, but I like it.
-      kable_classic_2() # this is also from kablextra
+  # all of the below are also from kablextra
+  column_spec(1, width = "2cm") |>
+  column_spec(2:5, width = "3.5cm") |>
+  kable_styling(full_width = F) |>
+  kable_classic_2() 
 ```
 
 
@@ -1640,9 +1643,9 @@ kable(summat, caption = "Averages by origin (minutes)",
 
 ## First assignment
 
-- Assignment for next week (due one week from today):
+- Assignment for next week (due two weeks from today):
   - Create a simple markdown document
-  - You can find the assignment [here](https://github.com/JoshMerfeld/applied-microeconometrics/blob/main/assignments/assignment1/assignment1.pdf) (on the [course GitHub page](https://github.com/JoshMerfeld/applied-microeconometrics))
+  - You can find the assignment [here](https://github.com/JoshMerfeld/geospatialdataR/blob/main/assignments/assignment1/assignment1.pdf) (on the [course GitHub page](https://github.com/JoshMerfeld/geospatialdataR))
 
 - Before next class, you will turn in on e-KDIS:
   - R script (if there is one)

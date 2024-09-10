@@ -15,7 +15,7 @@ header-includes:
 
 ---
 
-**Due date: Thursday, September 24th before class**
+**Due date: Tuesday, September 24th before class**
 
 The goal of this assignment is just to get you coding in R (well, RStudio) and R Markdown. You will use data from the Penn World Tables (information about the latest release [\textcolor{kdisgreen}{here}](https://www.rug.nl/ggdc/productivity/pwt/?lang=en)). I have uploaded an Excel file -- called pwt1001 -- to the assignment 1 folder with three tabs:
 
