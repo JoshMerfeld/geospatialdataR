@@ -215,7 +215,7 @@ data <- read_csv("week1data/data.csv")
   - Another code editor is also acceptable: VS Code, for example
   
 
-- Course website: [https://github.com/JoshMerfeld/applied-microeconometrics](https://github.com/JoshMerfeld/applied-microeconometrics)
+- Course website: [https://github.com/JoshMerfeld/geospatialdataR](https://github.com/JoshMerfeld/geospatialdataR)
   - This link is also on e-KDIS
   - I strongly recommend you have this website open during class
     - We will sometimes use data from the website
