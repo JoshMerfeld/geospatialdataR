@@ -40,7 +40,7 @@ library(nycflights13)
 library(kableExtra)
 
 # read in the data
-data <- read_csv("data.csv")
+data <- read_csv("week1data/data.csv")
 ```
 
 # Introduction
@@ -67,8 +67,8 @@ data <- read_csv("data.csv")
   - Geospatial data types
     - Shapefiles (vector files), rasters, etc.
   - Data visualization
-    - ggplot, tidyterraarch
-  - You will be doing assignments in R Markdown
+    - ggplot, tidyterra
+  - Getting comfortable with R and R Markdown
 
 
 
@@ -78,7 +78,7 @@ data <- read_csv("data.csv")
 - Today will just be a short introduction
 
 
-- For next class, please come with R and R Studio installed on your computer
+- For all future classes, please come with R and R Studio installed on your computer
   - You can find instructions on the syllabus
   - You **must** bring a laptop to class. If you cannot do this, please speak with me.
 
@@ -196,9 +196,24 @@ data <- read_csv("data.csv")
 
 
 
+## Class on October 21st
+
+- I will be in Bangkok for a UN workshop the week of the 21st of October
+
+- I have not decided what to do, but there are two possibilities:
+  - Cancel class and make it up during reading week
+  - Have an online class
+
+
+
+
+
 ## Questions?
 
 - Any questions about the course?
+
+
+
 
 
 
@@ -209,9 +224,10 @@ data <- read_csv("data.csv")
   - Another code editor is also acceptable: VS Code, for example
   
 
-- Course website: [https://github.com/JoshMerfeld/geospatialdataR](https://github.com/JoshMerfeld/geospatialdataR)
-
-
+- Course website: [https://github.com/JoshMerfeld/applied-microeconometrics](https://github.com/JoshMerfeld/applied-microeconometrics)
+  - This link is also on e-KDIS
+  - I strongly recommend you have this website open during class
+    - We will sometimes use data from the website
 
 
 
@@ -229,7 +245,6 @@ data <- read_csv("data.csv")
 
 
 - We will be using two small datasets to get you familiar with the program
-  - Class website
 
 
 - A note: if you are completely new to R, the first few weeks will be a slog
@@ -253,7 +268,7 @@ data <- read_csv("data.csv")
 
 - To work with R, we want to use an accompaniment called RStudio
   - RStudio is what is referred to as an integrated development environment (IDE)
-  - It is not the only option (I use VS Code, for example), but it is the most common
+  - It is not the only option (VS Code, for example), but it is the most common
   - It makes working with R much easier
 
 - Whenever you start R, you want to start RStudio
@@ -270,17 +285,19 @@ data <- read_csv("data.csv")
   - This means that we want to be able to share our code and have others be able to replicate our results
   - To do this, we will use "scripts" that contain our code
 
+. . .
 
 - A script should be self contained
   - This means that it should contain all of the code necessary to run the analysis
   - A well-written script should allow me to do everything without any additional information
+  - Note that more complicated projects can have many scripts! For this class: one script per assignment
 
+. . .
 
 - We will also use R Markdown to create documents
   - R Markdown is a way to combine text and code
   - This allows us to create documents that are reproducible
   - We will use R Markdown to create our homework assignments
-  - More on this in a bit
 
 
 
@@ -291,7 +308,7 @@ data <- read_csv("data.csv")
 ```{r rstudio1, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rstudio1.png",
+                        path = "week1assets/rstudio1.png",
                         auto_pdf = TRUE
                         )
 
@@ -305,7 +322,7 @@ knitr::include_graphics(
 ```{r rstudio2, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rstudio2.png",
+                        path = "week1assets/rstudio2.png",
                         auto_pdf = TRUE
                         )
 
@@ -319,7 +336,7 @@ knitr::include_graphics(
 ```{r rstudio3, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rstudio3.png",
+                        path = "week1assets/rstudio3.png",
                         auto_pdf = TRUE
                         )
 
@@ -333,7 +350,7 @@ knitr::include_graphics(
 ```{r rstudio4, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rstudio4.png",
+                        path = "week1assets/rstudio4.png",
                         auto_pdf = TRUE
                         )
 
@@ -348,7 +365,7 @@ knitr::include_graphics(
 ```{r rstudio5, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rstudio5.png",
+                        path = "week1assets/rstudio5.png",
                         auto_pdf = TRUE
                         )
 
@@ -363,7 +380,7 @@ knitr::include_graphics(
 ```{r rstudio6, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rstudio6.png",
+                        path = "week1assets/rstudio6.png",
                         auto_pdf = TRUE
                         )
 
@@ -378,6 +395,30 @@ knitr::include_graphics(
   - At the top of ALL my scripts, I have a comment that says what the script does.
   - At the top of your script, write a comment. It should say "# Week 1 - Introduction to R"
   - I put LOTS of comments in my scripts. This is good practice.
+  
+```{r}
+#| echo: true
+# cleaning the gps data and creating some maps
+# to run this, just set your working directory to the folder this script is located in
+# Author: Josh Merfeld
+# Initial date: September 5th, 2024
+```
+
+```{r}
+#| echo: true
+# lasso --------------------------------------------
+# we have ~60 features. This isn't that many, actually. We didn't create a lot of different possible combinations of the predictors.
+# We also don't have any fixed effects. This is just to fix ideas. Nonetheless, let's try lasso!
+# we use the glmnet package to implement lasso. It also allows ridge, but we want to make sure to use lasso.
+# how do we do this? we want to allocate grid cells across different "folds".
+```
+
+
+
+
+
+
+## Some notes
 
 - You can run a line of code by clicking the "Run" button
   - There are also shortcuts. On Mac it is command + enter. On windows it is control + enter. You can change these if you want.
@@ -385,6 +426,7 @@ knitr::include_graphics(
 - You can run multiple lines of code by highlighting them and clicking the "Run" button (or the shortcut)
 
 - We will practice these later
+
 
 
 
@@ -398,10 +440,11 @@ knitr::include_graphics(
     - A "tibble" is a type of data frame used by the tidyverse package (more below)
   - We will use data frames almost exclusively since we are working with datasets, but vectors are common, too
 - You can create a vector using the c() function:
-  - Note how we create a new object using the assignment operator, <-. You can also use =.
+  - Note how we create a new object using the assignment operator, <-. You can also use =.^[They are technically different. But you can generally treat them as the same.]
 
 
-```{r vector, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
+```{r}
+#| echo: true
 vec <- c(1, 2, 3, 4)
 vec
 ```
@@ -411,18 +454,22 @@ vec
 ## Object types
 
 - You can check what type of object something is by using the class() function
-  - For example, if I want to check what type of object vec is, I would write class(vec)
+  - For example, if I want to check what type of object vec is, I would write `class(vec)`
   - Note that the output is "numeric"
   - This is because vec is a vector of numbers
-- If I want to check whether it is a vector, I can write is.vector(vec)
-  - Note that the output is TRUE
-
-
-```{r vector2, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
+```{r}
+#| echo: true
 vec <- c(1, 2, 3, 4)
 class(vec)
+```
+- If I want to check whether it is a vector, I can write `is.vector(vec)`
+  - Note that the output is TRUE
+
+```{r}
+#| echo: true
 is.vector(vec)
 ```
+
 
 
 
@@ -486,7 +533,7 @@ install.packages("tidyverse")
 
 ```
 
-
+- Note you MUST use quotes around the package name
 
 
 
@@ -499,11 +546,13 @@ We need to load any R packages we want to use at the very top of the script. You
 
 ```{r tidyverse, echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE, size = "tiny"}
 
-library("tidyverse")
+library(tidyverse)
 
 ```
 
 This will load the tidyverse package.
+
+- Note you do NOT need to use quotes around the package name
 
 
 
@@ -526,7 +575,7 @@ This will load the tidyverse package.
 library(tidyverse)
 
 # read in the data
-data <- read_csv("data.csv")
+data <- read_csv("week1data/data.csv")
 
 ```
 
@@ -541,7 +590,7 @@ The data frame should show up in the upper right hand corner of RStudio.
 ```{r rstudio7, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rstudio7.png",
+                        path = "week1assets/rstudio7.png",
                         auto_pdf = TRUE
                         )
 
@@ -557,7 +606,7 @@ Click on the arrow and it will show more information.
 ```{r rstudio8, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rstudio8.png",
+                        path = "week1assets/rstudio8.png",
                         auto_pdf = TRUE
                         )
 
@@ -571,16 +620,47 @@ knitr::include_graphics(
 
 - The data frame is a matrix
   - Each row is an observation and each column is a variables
+  - Think of what this would look like if you opened it in Excel or Stata. It's the same.
 
 - We can also see the names of the columns like this:
 
-```{r colnames, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
+```{r}
 
 colnames(data)
 
 ```
 
 - This is the kind of thing I might do in the console since it's not really required for the script.
+
+
+
+
+## Objects in memory
+
+
+- Here's another handy quick-look functions
+
+```{r}
+
+glimpse(data)
+
+```
+
+
+
+
+## Objects in memory
+
+
+- And one more ("structure")
+
+```{r}
+
+str(data)
+
+```
+
+
 
 
 
@@ -594,10 +674,10 @@ colnames(data)
   - This means that you can call a variable *without referencing the data frame*
 - In R, if you want to look at a variable, you have to tell R which data frame it is in
   - This is done with the $ operator
-  - For example, if I want to look at the variable "age" in the data frame "data", I would write data$age
+  - For example, if I want to look at the variable "age" in the data frame "data", I would write `data$age`
   - Let's look at summary statistics for age:
 
-```{r callingvar, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
+```{r}
 
 summary(data$age)
 
@@ -611,9 +691,9 @@ summary(data$age)
 
 - You can also use summary on the data frame instead of a single column
   - It helps to think of a data frame as rows and columns. For variables, you want to call specific columns.
-- Look at the difference here (it cuts off because of the size of the slide):
+- Look at the difference here:
 
-```{r sumstats, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
+```{r}
 
 summary(data)
 
@@ -633,7 +713,7 @@ summary(data)
   - Note that we use square brackets instead of parentheses
   - Note that we use a comma to separate the row and column
 
-```{r rowcolumn, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
+```{r}
 
 data[1,2]
 
@@ -648,11 +728,13 @@ data[1,2]
   - For example, if I want the second column of the data frame "data", I would write data[,2]
   - Note that the second column is the ability variable
 
-```{r column, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
-
+```{r}
+#| class-output: hscroll
 colnames(data)
-data[,2]
+```
 
+```{r}
+data[,2]
 ```
 
 
@@ -665,7 +747,7 @@ data[,2]
 - Note that this is only how the PROGRAM stores missing variables. Sometimes the data itself has different missing values. \textcolor{red}{PAY ATTENTION!}
 - For example, take a look at the first ten rows of the data frame (also note how I call the first ten rows and leave out the first column!):
 
-```{r missing, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
+```{r}
 data[1:10,-1]
 ```
 
@@ -687,10 +769,10 @@ data[1:10,-1]
 
 ## Variable types
 
-- dbl is short for double, which is a numeric variable (the "type" of numeric variable is about how much memory is needed to store it)
-- chr is short for character, which is a string of characters (text)
-  - Surprisingly, in our previous example, educyears was a character string even though it seemed to be a number
-  - Let's look at the possible values of educyears using the unique() function, which outputs a vector:
+- `dbl` is short for double, which is a numeric variable (the "type" of numeric variable is about how much memory is needed to store it)
+- `chr` is short for character, which is a string of characters (text)
+  - Surprisingly, in our previous example, `educyears` was a character string even though it seemed to be a number
+  - Let's look at the possible values of `educyears` using the unique() function, which outputs a vector:
 
 ```{r uniqueeducyears, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
 unique(data$educyears)
@@ -710,7 +792,7 @@ unique(data$educyears)
 
 ```{r replace, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
 # replace "Not Mentioned" with NA
-data$educyears[data$educyears == "Not Mentioned"] <- NA  
+data$educyears[data$educyears=="Not Mentioned"] <- NA  
 # check that it worked by looking at the unique values
 unique(data$educyears)              
 # turn into numeric
@@ -725,7 +807,7 @@ class(data$educyears)
 
 ## Pipes
 
-- One of the most useful things in R is the pipe operator (|>)
+- One of the most useful things in R is the pipe operator (`|>`)
   - This is part of the tidyverse package
   - It allows you to chain commands together
   - It makes your code much easier to read
@@ -743,9 +825,9 @@ class(data$educyears)
 
 
 ## Pipes example
-Here is an example of how we can use pipes with the mutate() function in tidyverse
+Here is an example of how we can use pipes with the `mutate()` function in tidyverse
 
-- We are also going to use ifelse() to make this work
+- We are also going to use `ifelse()` to make this work
 
 ```{r replacemutate, echo = TRUE, message = FALSE, warning = FALSE, size = "tiny"}
 data <- data |>
@@ -916,7 +998,7 @@ g1 <- ggplot() +
         labs(title = "Histogram of educyears",
              x = "Years of education",
              y = "Count") +
-        theme_minimal()
+        theme_bw()
 g1
 ```
 
@@ -969,18 +1051,6 @@ head(flights$dep_time_new, n = 20)
 ```
 
 
-
-
-
-
-## Dates with lubridate
-Let's fix that!
-
-```{r lubridate3, echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE, size = "tiny", out.width = "45%", fig.align = "center"}
-flights$dep_time_new <- hm(sprintf("%02d:%02d", flights$dep_time %/% 100, flights$dep_time %% 100))
-
-head(flights$dep_time_new, n = 20)
-```
 
 
 
@@ -1084,7 +1154,7 @@ ggplot() +
   geom_smooth(data = flights, aes(x = sched_dep_time, y = dep_delay, color = origin), se = FALSE) +
   labs(x = "Scheduled departure time",
        y = "Departure delay (minutes)") +
-  theme_minimal() + guides(color = guide_legend(title = "Departure airport"))
+  theme_bw() + guides(color = guide_legend(title = "Departure airport"))
 ```
 
 
@@ -1128,7 +1198,7 @@ install.packages("rmarkdown")
 ```{r rm1, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rm1.png",
+                        path = "week1assets/rm1.png",
                         auto_pdf = TRUE
                         )
 
@@ -1143,7 +1213,7 @@ knitr::include_graphics(
 ```{r rm2, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rm2.png",
+                        path = "week1assets/rm2.png",
                         auto_pdf = TRUE
                         )
 
@@ -1158,7 +1228,7 @@ knitr::include_graphics(
 ```{r rm3, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rm3.png",
+                        path = "week1assets/rm3.png",
                         auto_pdf = TRUE
                         )
 
@@ -1176,6 +1246,7 @@ knitr::include_graphics(
 - What is "knitting"?
   - Knitting is the process of turning your R Markdown document into a pdf, html, or word document.
   - We will just focus on pdfs for now.
+  - Note: I am using Quarto in an HTML format for these slides!
 
 
 
@@ -1186,7 +1257,7 @@ knitr::include_graphics(
 ```{r rm4, echo = FALSE, message = FALSE, warning = FALSE, out.width = "90%", fig.align = "center"}
 
 knitr::include_graphics(
-                        path = "assets/rm4.png",
+                        path = "week1assets/rm4.png",
                         auto_pdf = TRUE
                         )
 
@@ -1212,7 +1283,7 @@ knitr::include_graphics(
   - This is called the YAML header
   - It tells R Markdown what kind of document to create
   - It also allows you to set some options
-  - DO NOT DELETE THE --- AT THE TOP AND BOTTOM OF THE YAML HEADER!
+  - DO NOT DELETE THE `---` AT THE TOP AND BOTTOM OF THE YAML HEADER!
   
 - You can change the title and date as you please
   - For today's date, you can use Sys.Date() within R inline code (more in a second):
@@ -1228,7 +1299,7 @@ date: "`r Sys.Date()`"
 
 ## The setup chunk
 
-- Just below the YAML header you'll see a "code chunk" called "setup" (r setup, include = FALSE)
+- Just below the YAML header you'll see a "code chunk" called "setup" (` r setup, include = FALSE`)
   
 - Note how it has $```$ and $```$ at the top and bottom. This differentiates the "code chunk" from the rest of the document.
   - Whenever you want to add a code chunk, you *must* have the $```$ at the top and bottom of it, at the beginning of the line.
@@ -1255,7 +1326,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse) 
 
 # load any data you want to use throughout the document.
-data <- read_csv("data.csv") 
+data <- read_csv("week1data/data.csv") 
 ```
 ````
 
@@ -1322,8 +1393,7 @@ How did I do that?
 
 \small
 ````markdown
-`r ''````{r chunkexample, include = TRUE, warning = FALSE, out.width = "55%", 
-          fig.align = "center"}
+`r ''````{r chunkexample, include = TRUE, warning = FALSE, out.width = "55%", fig.align = "center"}
 # note that I named the chunk.
 # all chunks must have a UNIQUE name.
 # you will get an error if they don't
@@ -1343,7 +1413,7 @@ ggplot(flights) +
 
 - There are lots of code chunk options.
 
-- You can find the code chunk options [\textcolor{kdisgreen}{here}](https://rpubs.com/Lingling912/870659) (https://rpubs.com/Lingling912/870659)
+- You can find the code chunk options [here](https://rpubs.com/Lingling912/870659) (https://rpubs.com/Lingling912/870659)
 
 - This will get easier to use as you get more and more practice.
 
@@ -1369,18 +1439,21 @@ Don't do this.
 ## You can add R inline code
 
 
-- You can add R inline code using the $`r'$ operator.
-  - For example, if I want to add the date, I can write `r Sys.Date()`
-  - There are `r ncol(flights)` columns in the flights data.
-  - There are `r nrow(flights)` columns in the flights data.
-
-
 ````markdown
+#| output: asis
+- You can add R inline code using the $`r'$ operator.
+  - For example, if I want to add the date, I can write ` r Sys.Date()` (no space between the ` and the r)
+  - There are ` r ncol(flights)` columns in the flights data. (no space between the ` and the r)
+  - There are ` r nrow(flights)` rows in the flights data. (no space between the ` and the r)
+````
+
 - You can add R inline code using the $`r'$ operator.
   - For example, if I want to add the date, I can write `r Sys.Date()`
   - There are `r ncol(flights)` columns in the flights data.
-  - There are `r nrow(flights)` columns in the flights data.
-````
+  - There are `r nrow(flights)` rows in the flights data.
+
+
+
 
 
 
@@ -1391,13 +1464,11 @@ Don't do this.
 - I like lists.
   - With indentations.
 1. Really, I do.
-   1. Indent! It's just a tab.
 
 ````markdown
 - I like lists.
   - With indentations.
 1. Really, I do.
-   1. Indent! It's just a tab.
 ````
 
 
@@ -1439,7 +1510,7 @@ $$y = x + \varepsilon$$
 ## latex
 
 \begin{gather}\label{eq1} y = x + \varepsilon \end{gather}
-- In Equation \autoref{eq1}
+- In Equation 1
 
 
 ````markdown
@@ -1458,7 +1529,7 @@ $$y = x + \varepsilon$$
 
 - latex is particularly helpful for rendering math
   
-- You can find a handy reference guide [\textcolor{kdisgreen}{here}](https://icl.utk.edu/~mgates3/docs/latex.pdf) (https://icl.utk.edu/~mgates3/docs/latex.pdf)
+- You can find a handy reference guide [here](https://icl.utk.edu/~mgates3/docs/latex.pdf) (https://icl.utk.edu/~mgates3/docs/latex.pdf)
 
 
 
@@ -1467,9 +1538,9 @@ $$y = x + \varepsilon$$
 ## Creating tables
 
 - There are lots of ways to create tables in R Markdown.
-  - I will show you how using the kable() function in the knitr package.
+  - I will show you one way using the kable() function in the knitr package.
   - You do not need to download this package, it is already installed with R Markdown.
-    - There is extra functionality in the kableExtra package. You need to download this and laod it if you want to use it.
+    - There is extra functionality in the kableExtra package. You need to download this and load it if you want to use it.
 
 
 
@@ -1477,7 +1548,7 @@ $$y = x + \varepsilon$$
 
 ## Creating tables
 
-```{r table, include = TRUE, eval = FALSE, warning = FALSE, echo = TRUE, size = "tiny"}
+```{r}
 summat <- flights |> 
             # this groups ROWS based on their origin value
             group_by(origin) |> 
@@ -1495,29 +1566,12 @@ kable(summat,
 
 
 
-## Creating tables
-
-```{r table2, include = TRUE, eval = TRUE, warning = FALSE, echo = FALSE, size = "tiny"}
-summat <- flights |> 
-            # this groups ROWS based on their origin value
-            group_by(origin) |> 
-            # create means by group
-            summarize(avg_dep_delay = mean(dep_delay, na.rm = T),
-                      avg_arr_delay = mean(arr_delay, na.rm = T),
-                      avg_air_time = mean(air_time, na.rm = T),
-                      flights = n())
-# output 
-kable(summat,
-      align = "ccc")
-```
-
-
 
 
 
 ## I don't like that at all! Let's make it pretty.
 
-```{r table3, include = TRUE, eval = FALSE, warning = FALSE, echo = TRUE, size = "tiny"}
+```{r}
 summat <- flights |> 
             # this groups ROWS based on their origin value
             group_by(origin) |> 
@@ -1530,7 +1584,7 @@ summat <- flights |>
 colnames(summat) <- c("Origin", "Departure Delay", "Arrival Delay", "Flight Time", "Flights")
 # output 
 kable(summat, caption = "Averages by origin (minutes)",
-      align = "ccc", linesep = "", 
+      align = "ccc", linesep = "", digits = 2, format.args = list(big.mark = ","),
       booktabs = TRUE) |> # this is from kablextra. You don't have to use it, but I like it.
       kable_classic_2() # this is also from kablextra
 ```
@@ -1539,79 +1593,6 @@ kable(summat, caption = "Averages by origin (minutes)",
 
 
 
-## I don't like that at all! Let's make it pretty.
-
-```{r table4, include = TRUE, eval = TRUE, warning = FALSE, echo = FALSE, size = "tiny"}
-summat <- flights |> 
-            # this groups ROWS based on their origin value
-            group_by(origin) |> 
-            # create means by group
-            summarize(avg_dep_delay = round(mean(dep_delay, na.rm = T), 2),
-                      avg_arr_delay = round(mean(arr_delay, na.rm = T), 2),
-                      avg_air_time = round(mean(air_time, na.rm = T), 2),
-                      flights = n())
-# rename columns
-colnames(summat) <- c("Origin", "Departure Delay", "Arrival Delay", "Flight Time", "Flights")
-# output 
-kable(summat, caption = "Averages by origin (minutes)",
-      align = "ccc", linesep = "", 
-      booktabs = TRUE) |> # this is from kablextra. You don't have to use it, but I like it.
-      kable_classic_2() # this is also from kablextra
-```
-
-
-
-
-
-## One more change!
-
-```{r table5, include = TRUE, eval = FALSE, warning = FALSE, echo = TRUE, size = "tiny"}
-summat <- flights |> 
-            # this groups ROWS based on their origin value
-            group_by(origin) |> 
-            # create means by group, ROUNDING to two decimal places
-            summarize(avg_dep_delay = round(mean(dep_delay, na.rm = T), 2),
-                      avg_arr_delay = round(mean(arr_delay, na.rm = T), 2),
-                      avg_air_time = round(mean(air_time, na.rm = T), 2),
-                      flights = n())
-summat$flights <- format(summat$flights, big.mark = ",", scientific = FALSE)
-# rename columns
-colnames(summat) <- c("Origin", "Departure Delay", "Arrival Delay", "Flight Time", "Flights")
-summat <- t(summat)
-# output 
-kable(summat, caption = "Averages by origin (minutes)",
-      align = "ccc", linesep = "", 
-      booktabs = TRUE) |> # this is from kablextra. You don't have to use it, but I like it.
-      row_spec(c(1, 4), hline_after = TRUE) |> # this is also from kablextra
-      kable_classic_2() # this is also from kablextra
-```
-
-
-
-
-
-## One more change!
-
-```{r table6, include = TRUE, eval = TRUE, warning = FALSE, echo = FALSE, size = "tiny"}
-summat <- flights |> 
-            # this groups ROWS based on their origin value
-            group_by(origin) |> 
-            # create means by group
-            summarize(avg_dep_delay = round(mean(dep_delay, na.rm = T), 2),
-                      avg_arr_delay = round(mean(arr_delay, na.rm = T), 2),
-                      avg_air_time = round(mean(air_time, na.rm = T), 2),
-                      flights = n())
-summat$flights <- format(summat$flights, big.mark = ",", scientific = FALSE)
-# rename columns
-colnames(summat) <- c("Origin", "Departure Delay", "Arrival Delay", "Flight Time", "Flights")
-summat <- t(summat)
-# output 
-kable(summat, caption = "Averages by origin (minutes)",
-      align = "ccc", linesep = "", 
-      booktabs = TRUE) |> # this is from kablextra. You don't have to use it, but I like it.
-      row_spec(c(1, 4), hline_after = TRUE) |> # this is also from kablextra
-      kable_classic_2() # this is also from kablextra
-```
 
 
 
@@ -1645,16 +1626,36 @@ kable(summat, caption = "Averages by origin (minutes)",
 
 
 
+
+
+## Try it!
+
+- Try to knit an R Markdown document
+  - Include one table and one figure
+
+- I'll walk around and help out in a few minutes
+
+
+
+
 ## First assignment
 
 - Assignment for next week (due one week from today):
   - Create a simple markdown document
-  - You can find the assignment [\textcolor{kdisgreen}{here}](https://github.com/JoshMerfeld/applied-microeconometrics/blob/main/assignments/assignment1/assignment1.pdf) (on the [\textcolor{kdisgreen}{course GitHub page}](https://github.com/JoshMerfeld/applied-microeconometrics))
+  - You can find the assignment [here](https://github.com/JoshMerfeld/applied-microeconometrics/blob/main/assignments/assignment1/assignment1.pdf) (on the [course GitHub page](https://github.com/JoshMerfeld/applied-microeconometrics))
 
-- Next week, you will turn in on e-KDIS:
+- Before next class, you will turn in on e-KDIS:
   - R script (if there is one)
   - R Markdown script
   - pdf of the R Markdown document
+
+
+
+
+
+
+
+
 
 
 
