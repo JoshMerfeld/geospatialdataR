@@ -27,7 +27,7 @@ In addition to online resources, TA sections in this course will be devoted to h
 
 
 ## Other resources
-There are also two slide decks that are extremely helpful:
+There are some great slide decks that are extremely helpful:
 - Grant McDermott's slides: [https://github.com/uo-ec607/lectures](https://github.com/uo-ec607/lectures) (these slides focus on data science and R)
 
 
@@ -38,7 +38,7 @@ You can find the slides (and any data we will be using) for each week under thei
 - Week 1: You can find the slides for the the week here: [week 1 slides](https://joshmerfeld.github.io/geospatialdataR/week1both.html).
   - You can find the data for week 1 in the [week1data](week1data) folder or by clicking [here](week1data/data.csv) (you can download the csv in the upper-right-hand corner).
 - Week 2:  You can find the slides for the the weekhere:  [week 2 slides](https://joshmerfeld.github.io/geospatialdataR/week2.html).
-  - You can find the data for week 2 in the [week2data](week2data) folder.
+  - You can find the data for week 2 in the [week2data](week2files) folder.
 - Week 3: TBD
 - Week 4: TBD
 - Week 5: TBD
