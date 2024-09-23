@@ -104,11 +104,12 @@ kdisgray <- "#A7A9AC"
 - Shapefiles are a common format for geospatial data
   - They are a form of `vector` data
 
-- Shapefiles are made up of _at least_ four files:
+- Shapefiles are made up of _at least_ three files:
   - `.shp` - the shape itself
   - `.shx` - the index
   - `.dbf` - the attributes
   - `.prj` - the projection
+    - This one is not technically necessary! But it's common to have.
   - What these all mean isn't important for now, just make sure they are there! Check the `week2files` folder on github.
 
 
@@ -1617,6 +1618,25 @@ plot_grid(g1, g2) +
   - Transform the shapefile to the appropriate UTM zone for the country
     - Note that many countries have multiple UTM zones! You can just choose one
   - Plot them side by side using `cowplot`
+
+
+  
+  
+  
+## Returning to the files
+
+- Shapefiles are made up of _at least_ four files:
+  - `.shp` - the shape itself
+    - The geometry
+  - `.shx` - the index
+    - The "index". You can actual recover the .shx file from the .shp file
+  - `.dbf` - the attributes
+    - The attributes for each features. Could be names, population values, etc.
+  - `.prj` - the projection
+    - The projection information, which we just discussed
+
+- There are often more files, but these are the main ones
+  - You **must** have the first three. The fourth is optional, but common.
 
 
 
