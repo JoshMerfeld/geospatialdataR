@@ -1,0 +1,493 @@
+---
+title:  "Geospatial data analysis in R"
+subtitle: "Relating vector data"
+author: "Josh Merfeld"
+institute: "KDI School"
+date: "`r Sys.Date()`"
+
+date-format: long
+format: 
+  revealjs:
+    self-contained: true
+    slide-number: false
+    progress: false
+    theme: [serif, custom.scss]
+    width: 1500
+    height: 1500*(9/16)
+    code-copy: true
+    code-fold: show
+    code-overflow: wrap
+    highlight-style: github
+execute:
+  echo: true
+  warnings: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::knit_hooks$set(crop = knitr::hook_pdfcrop)
+
+library(tidyverse)
+library(terra)
+library(tidyterra)
+library(cowplot)
+library(kableExtra)
+library(haven)
+
+kdisgreen <- "#006334"
+accent <- "#340063"
+accent2 <- "#633400"
+kdisgray <- "#A7A9AC"
+
+```
+
+
+
+  
+# Distances
+
+## More distances
+
+- We have points for households
+- We have points for health facilities
+
+- We can calculate the distance between each household and each health facility
+  - Finding distances between points is a common GIS task!
+
+
+
+
+
+## Distance matrix
+
+- The name of the households data is `households.dta`
+  - This is a Stata dataset
+  - You can read it using the package `haven`
+  
+- Please go ahead and try loading the dataset and then turning it into a `terra` object
+  - You'll have to find the names of the columns that represent the coordinates
+
+
+
+
+
+## Distance matrix
+  
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+# households
+households <- read_dta("week4files/households.dta")
+households <- vect(households, geom = c("ea_lon_mod", "ea_lat_mod"), crs = "EPSG:4326")
+# health facilities
+# do it in one line!
+health <- vect(read_csv("week4files/points.csv"), geom = c("x", "y"), crs = "EPSG:4326")
+```
+
+
+
+
+
+## Distance matrix
+  
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+distances <- distance(households, health)
+dim(households)
+dim(health)
+dim(distances)
+```
+
+
+
+
+
+## Distance matrix - "Heat map"
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+
+distances <- as_tibble(distances)
+distances$hhid <- 1:nrow(distances)
+# pivot longer
+distances <- pivot_longer(distances, -hhid, names_to = "facility", values_to = "distance")
+distances$facility <- as.numeric(substr(distances$facility, 2, str_length(distances$facility)))
+
+ggplot(distances) + 
+  geom_tile(aes(x = hhid, y = facility, fill = distance/1000), color = NA) +
+  scale_fill_distiller("Distances\n(km)", palette = "Spectral") +
+  theme_bw() +
+  labs(x = "Households", y = "Health facilities") +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+## Closest health facility by household
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+distances <- distances |>
+  group_by(hhid) |>
+  summarize(distance = min(distance)) |>
+  ungroup()
+households$distance <- distances$distance
+ggplot() + 
+  geom_spatvector(data = households, aes(color = distance/1000), size = 0.5) +
+  scale_color_distiller("Distances\n(km)", palette = "Spectral") +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+## How did I create the map?
+
+- The `distances` object is a matrix
+  - What are the rows and what are the columns?
+
+. . .
+
+- If we want to find the closest health facility to each household, what do we need to do?
+  - We need to find the minimum distance for each row
+  - Do you remember?
+
+
+
+
+
+## Closest health facility by household
+
+- We can use the `apply` function!
+  - But with `"min"` instead of `"sum"`
+  - The rows are in the same order as the households, so...
+  
+. . .
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: false
+#| fig-align: center
+#| crop: true
+
+distances <- distance(households, health)
+closest <- apply(distances, 1, "min")
+
+# they're in the same order!
+households$closest <- closest
+
+ggplot() + 
+  geom_spatvector(data = households, aes(color = closest/1000), size = 0.5) +
+  scale_color_distiller("Distances\n(km)", palette = "Spectral") +
+  theme_bw()
+```
+  
+
+
+
+
+## Distances - points and polygons
+
+
+
+
+
+
+# More advanced operations
+
+## Let's go over some more advanced operations
+
+- First up:
+  - Spatial overlap
+
+
+
+
+
+
+
+## A grid in Korea - `kgrid.zip`
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+
+kshape <- vect("week4files/kshape.shp")
+kgrid <- vect("week4files/kgrid.shp")
+
+ggplot() + 
+  geom_spatvector(data = kgrid, fill = NA) + 
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+
+
+
+## A grid in Korea - `kgrid.zip`
+
+- We will discuss how to make a grid after we learn about rasters
+
+- For now, the grid is a shapefile
+
+- A very common operation:
+  - We want to know which province/city each grid cell is in
+  - This isn't straightforward. Why?
+
+. . .
+
+- A grid cell can overlap multiple provinces/cities
+
+
+
+
+
+
+
+## The data
+
+- Here is the data:
+  - `kshape.shp` is the shapefile of the provinces/cities
+  - `kgrid.shp` is the grid
+  - I have uploaded .zip files for both
+
+<br>
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+kshape <- vect("week4files/kshape.shp")
+kgrid <- vect("week4files/kgrid.shp")
+kgrid
+```
+
+
+
+
+
+
+
+## The `intersect` function from `terra`
+
+- We are going to use the `intersect` function
+
+- Here's what it will do:
+  - It will find the intersection of the grid cell and the province/city
+  - Except, it will return a new feature for EACH overlap
+  
+- Let's look at some maps
+
+
+
+## The `intersect` function from `terra`
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+g1 <- ggplot() + 
+  geom_spatvector(data = kshape, fill = NA) +
+  theme_bw() +
+  labs(subtitle = "A. Provinces/cities") +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+g2 <- ggplot() + 
+  geom_spatvector(data = kgrid, fill = NA) +
+  theme_bw() +
+  labs(subtitle = "B. Grids") +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+plot_grid(g1, g2) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+## The `intersect` function from `terra`
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+kgrid
+intersection <- intersect(kgrid, kshape)
+intersection
+
+```
+
+
+
+## One grid cell, multiple overlaps
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatvector(data = intersection[intersection$id==940,]) +
+  geom_spatvector(data = kgrid[kgrid$id==940,], fill = NA) +
+  geom_spatvector(data = intersect(kshape, ext(intersection[intersection$id==940,])), aes(fill = CTP_ENG_NM)) +
+  scale_fill_brewer("Province", palette = "Set3") +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  coord_sf(datum = sf::st_crs(5179))
+
+```
+
+
+
+## One grid cell, multiple overlaps
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+intersection$area <- round(expanse(intersection)/(1000^2), 3)
+ggplot() +
+  geom_spatvector(data = intersection[intersection$id==940,], aes(fill = as.factor(area))) +
+  geom_spatvector(data = kgrid[kgrid$id==940,], fill = NA) +
+  scale_fill_brewer("Area of\noverlap\n(sq km)", palette = "Set3") +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  coord_sf(datum = sf::st_crs(5179))
+
+```
+
+
+
+## Area of overlap
+
+- So what do we want to do?
+  - Let's find the area of overlap for each grid cell and each province/city
+  - Then let's take the LARGEST overlap and assign that to the grid cell
+  - In practice, depending on the context, you could use a weighted mean or something else
+    - This won't work with categorical variables, though
+    
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+# Get area of all overlaps
+intersection$area <- expanse(intersection)
+# turn it into a tibble
+intersection <- as_tibble(intersection)
+# Get the largest overlap
+intersection <- intersection |> group_by(id) |> filter(area==max(area)) |> ungroup()
+
+```
+
+
+
+## Area of overlap
+
+    
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+intersection
+kgrid
+```
+
+
+
+
+
+
+
+
+
+
+## Distances - lines in polygons
+
+
+
+
+## Centroids
+
+
+## Unions
+
+
+## Unions
+
+
+
+
+
+
+
+
+
+  
+

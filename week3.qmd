@@ -1036,10 +1036,8 @@ ggdraw(g1) +
 #| eval: false
 
 ggdraw(g1) +
-  draw_plot(g2 + theme(legend.position = "none"), 
-    x = 0.425, y = 0.7, height = 0.275, width = 0.275) +
-  draw_plot(g3 + theme(legend.position = "none"), 
-    x = 0.425, y = 0.7, height = 0.275, width = 0.275)
+  draw_plot(g2, x = 0.425, y = 0.6, height = 0.275, width = 0.275) +
+  draw_plot(g3, x = 0.485, y = 0.23, height = 0.275, width = 0.2) +
 
 ```
 
@@ -2085,7 +2083,7 @@ ggplot() +
 ## Distance matrix
   
 ```{r}
-#| echo: false
+#| echo: true
 #| include: true
 #| eval: true
 #| fig-align: center
@@ -2105,7 +2103,7 @@ health <- vect(read_csv("week3files/points.csv"), geom = c("x", "y"), crs = "EPS
 ## Distance matrix
   
 ```{r}
-#| echo: false
+#| echo: true
 #| include: true
 #| eval: true
 #| fig-align: center
