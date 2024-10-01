@@ -2111,7 +2111,7 @@ health <- vect(read_csv("week3files/points.csv"), geom = c("x", "y"), crs = "EPS
 #| fig-align: center
 #| crop: true
 
-distances <- distance(households, health, latlon=TRUE)
+distances <- distance(households, health)
 dim(households)
 dim(health)
 dim(distances)
@@ -2209,7 +2209,7 @@ ggplot() +
 #| fig-align: center
 #| crop: true
 
-distances <- distance(households, health, latlon=TRUE)
+distances <- distance(households, health)
 closest <- apply(distances, 1, "min")
 
 # they're in the same order!
