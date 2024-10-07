@@ -55,6 +55,10 @@ kdisgray <- "#A7A9AC"
 - We can calculate the distance between each household and each health facility
   - Finding distances between points is a common GIS task!
 
+- Make sure to call the libraries we'll need!
+  - `tidyverse`
+  - `terra`
+  - `tidyterra`
 
 
 
@@ -220,6 +224,308 @@ ggplot() +
 
 ## Distances - points and polygons
 
+- What if we want to find the distance from points to polygons?
+
+- For example, what if we want to find the distance from the households to the two largest cities??
+  - Lilongwe and Blantyre
+
+  
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+households <- read_dta("week4files/households.dta")
+households <- vect(households, geom = c("ea_lon_mod", "ea_lat_mod"), crs = "EPSG:4326")
+# mw3
+mw3 <- vect("week4files/mw3allcountry.shp")
+mw3 <- mw3 |> filter(NAME_1 %in% c("Lilongwe", "Blantyre"))
+mw3 <- aggregate(mw3, "ID_1")
+table(mw3$ID_1)
+```
+  
+
+
+
+
+## Distances - points and polygons
+
+
+  
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+# mw3
+
+ggplot() + 
+  geom_spatvector(data = households, color = "red", size = 0.5, alpha = 0.5) +
+  geom_spatvector(data = mw3, color = "black", fill = "transparent") +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+
+## Distance matrix
+  
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+# projected CRS
+households <- project(households, "EPSG:20936")
+mw3 <- project(mw3, "EPSG:20936")
+
+# distance matrix!
+distances <- distance(households, mw3, unit = "km")
+distances
+
+```
+
+. . .
+
+- So what do we do now?
+
+. . .
+  
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+# same thing!
+distances <- apply(distances, 1, "min")
+households$closest_city <- distances
+```
+  
+
+
+
+
+## Distances - points and polygons
+
+  
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+# mw3
+
+ggplot() + 
+  geom_spatvector(data = households, aes(color = closest_city), size = 0.5, alpha = 0.5) +
+  scale_color_distiller("Distances\n(km)", palette = "Spectral") +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+  
+
+
+
+
+## Related: Voronoi polygons
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+mw3 <- vect("week4files/mw3allcountry.shp")
+mw3centroids <- aggregate(mw3, "ID_1")
+mw3centroids <- centroids(mw3centroids)
+voronoi <- voronoi(mw3centroids, bnd = mw3)
+# now intersect
+mw3 <- aggregate(mw3)
+voronoi <- intersect(voronoi, mw3)
+
+
+ggplot() + 
+  geom_spatvector(data = voronoi) +
+  geom_spatvector(data = mw3centroids) +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+## Related: Voronoi polygons
+
+- Can you tell what the polygons represent?
+
+. . .
+
+- The polygons represent the area that is closest to some given points
+  - In our case, it is the distance to the admin1 CENTROIDS
+  - This is called a Voronoi diagram (or polygons)
+
+
+
+
+## Centroids
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+# let's start with centroids
+mw3 <- vect("week4files/mw3allcountry.shp")
+# aggregate to ID_1
+mw3 <- aggregate(mw3, "ID_1")
+mw3centroids <- centroids(mw3)
+mw3centroids
+
+```
+
+- Note that it is now points!
+
+
+
+
+## Centroids
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: false
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatvector(data = mw3centroids) +
+  geom_spatvector(data = mw3, fill = NA) +
+  theme_bw()
+
+```
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatvector(data = mw3centroids) +
+  geom_spatvector(data = mw3, fill = NA) +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+
+
+## Creating a Voronoi diagram
+
+- To create the diagram, we need to do the following:
+  - Create the points that represent the points of interest (already done)
+  - Create the entire spatial extent we want to cover (already done! just use adm3)
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+# mw3
+mw3 <- vect("week4files/mw3allcountry.shp")
+# first aggregate to ID_1
+mw3 <- aggregate(mw3, "ID_1")
+# create centroids
+mw3centroids <- centroids(mw3)
+# now aggregate mw3 to country level
+mw3 <- aggregate(mw3)
+# bnd stands for "boundary"
+voronoi <- voronoi(mw3centroids, bnd = mw3)
+
+```
+
+
+
+
+
+
+## Creating a Voronoi diagram
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: false
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatvector(data = voronoi) +
+  geom_spatvector(data = mw3centroids) +
+  theme_bw()
+
+```
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatvector(data = voronoi) +
+  geom_spatvector(data = mw3centroids) +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+
+## The last bit
+
+- The last bit is to intersect the Voronoi polygons with Malawi to only show the areas of the country (and not the entire bounding box)
+  - We'll come back to this later!
+
+
+
+
+
 
 
 
@@ -366,8 +672,10 @@ plot_grid(g1, g2) +
 #| crop: true
 
 kgrid
+# Note: This takes a bit of time
 intersection <- intersect(kgrid, kshape)
 intersection
+
 
 ```
 
@@ -383,9 +691,9 @@ intersection
 #| crop: true
 
 ggplot() +
-  geom_spatvector(data = intersection[intersection$id==940,]) +
-  geom_spatvector(data = kgrid[kgrid$id==940,], fill = NA) +
-  geom_spatvector(data = intersect(kshape, ext(intersection[intersection$id==940,])), aes(fill = CTP_ENG_NM)) +
+  geom_spatvector(data = intersection[intersection$id==1069,]) +
+  geom_spatvector(data = kgrid[kgrid$id==1069,], fill = NA) +
+  geom_spatvector(data = intersect(kshape, ext(intersection[intersection$id==1069,])), aes(fill = CTP_ENG_NM)) +
   scale_fill_brewer("Province", palette = "Set3") +
   theme_bw() +
   theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
@@ -408,8 +716,8 @@ ggplot() +
 
 intersection$area <- round(expanse(intersection)/(1000^2), 3)
 ggplot() +
-  geom_spatvector(data = intersection[intersection$id==940,], aes(fill = as.factor(area))) +
-  geom_spatvector(data = kgrid[kgrid$id==940,], fill = NA) +
+  geom_spatvector(data = intersection[intersection$id==1069,], aes(fill = as.factor(area))) +
+  geom_spatvector(data = kgrid[kgrid$id==1069,], fill = NA) +
   scale_fill_brewer("Area of\noverlap\n(sq km)", palette = "Set3") +
   theme_bw() +
   theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
@@ -427,7 +735,6 @@ ggplot() +
   - Let's find the area of overlap for each grid cell and each province/city
   - Then let's take the LARGEST overlap and assign that to the grid cell
   - In practice, depending on the context, you could use a weighted mean or something else
-    - This won't work with categorical variables, though
     
 ```{r}
 #| echo: true
@@ -440,7 +747,10 @@ intersection$area <- expanse(intersection)
 # turn it into a tibble
 intersection <- as_tibble(intersection)
 # Get the largest overlap
-intersection <- intersection |> group_by(id) |> filter(area==max(area)) |> ungroup()
+intersection <- intersection |> 
+  group_by(id) |> 
+  filter(area==max(area)) |> 
+  ungroup()
 
 ```
 
@@ -461,7 +771,220 @@ kgrid
 
 
 
+## Grids and provinces
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
 
+# same order!
+kgrid <- kgrid[match(intersection$id, kgrid$id),]
+# double check that it worked
+min(intersection$id==kgrid$id)
+# now put the province name into the grid
+kgrid$CTP_ENG_NM <- intersection$CTP_ENG_NM
+```
+
+
+
+
+## Grids and provinces
+
+    
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+# same order!
+kgrid <- kgrid[match(intersection$id, kgrid$id),]
+kgrid$CTP_ENG_NM <- intersection$CTP_ENG_NM
+# also create a continuous value for the province
+kgrid$prov <- as.numeric(as.factor(kgrid$CTP_ENG_NM))
+
+ggplot() +
+  geom_spatvector(data = kgrid, aes(fill = prov), show.legend = FALSE) +
+  scale_fill_distiller("Province", palette = "Spectral") +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  coord_sf(datum = sf::st_crs(5179))
+```
+
+
+
+
+## Let's practice
+
+- Getting used to this takes a lot of practice
+  - So let's practice together
+
+- Going to use the `mw2.zip` file
+  - Just northern Malawi
+- Also going to use `mwgrid.zip`
+  - Grid cells for northern Malawi
+  - We want to know which district each grid cell is in
+
+
+
+
+## Malawi grid
+
+    
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+mwgrid <- vect("week4files/mwgrid.shp")
+
+ggplot() +
+  geom_spatvector(data = mwgrid) +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+## Steps
+
+- Load the data
+  - Both shapefiles
+- Make sure they are in the same CRS
+- Intersect them
+- Calculate the area of each intersection
+  - Find the largest intersection for each grid cell
+- Assign the district for the largest intersection to each grid cell
+- Plot it!
+  - With colors for districts
+  
+  
+
+
+## Steps 1 and 2: Load and CRS
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+mwgrid <- vect("week4files/mwgrid.shp")
+mw2 <- vect("week4files/mw2.shp")
+# just to be safe
+mwgrid <- project(mwgrid, crs(mw2))
+
+```
+
+
+
+## Step 3: Intersection
+    
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+intersection <- intersect(mwgrid, mw2)
+dim(mwgrid) # 1,237 features
+dim(intersection) # 1,383 features
+
+```
+
+
+
+## Step 4: Area (expanse)
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+intersection$area <- expanse(intersection)
+
+# keep largest only
+intersection <- intersection |> 
+  group_by(id) |> 
+  filter(area==max(area)) |> 
+  ungroup()
+
+```
+
+
+
+## Step 5: Assign district
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+# here's a different way to do it
+mwgrid <- mwgrid |>
+  arrange(id)
+intersection <- intersection |>
+  arrange(id)
+# double check
+min(mwgrid$id==intersection$id)
+mwgrid$district <- intersection$DIST_CODE
+
+```
+
+
+
+## Step 6: Plot it!
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: false
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatvector(data = mwgrid, aes(fill = as.factor(district))) +
+  scale_fill_brewer("District", palette = "Set3") +
+  theme_bw()
+
+```
+
+
+
+## Step 6: Plot it!
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatvector(data = mwgrid, aes(fill = as.factor(district))) +
+  scale_fill_brewer("District", palette = "Set3") +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  coord_sf(datum = sf::st_crs(4326))
+
+```
 
 
 
@@ -470,16 +993,207 @@ kgrid
 
 ## Distances - lines in polygons
 
+- Calculating distances of lines in polygons has a similar workflow
+
+- Can you think about how we'd do this?
+
+. . .
+
+- Steps:
+  - Create intersection of lines and polygons of interest
+  - Calculate the length of the lines in EACH intersection
+  - Aggregate lengths to polygons
+  - Join to shapefile
 
 
 
-## Centroids
+## Lines in polygons
+
+- Let's go back to an example from a few weeks ago: roads in India
+  - `indiaprimaryroads.zip`
+- Let's figure out the total length of "primary roads" in India districts
+  - `india_2011_district.zip`
+
+
+
+## Lines in polygons
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: false
+#| fig-align: center
+#| crop: true
+
+indiaroads <- vect("week4files/indiaprimaryroads.shp")
+indiadistricts <- vect("week4files/india_2011_district.shp")
+
+ggplot() +
+  geom_spatvector(data = indiaroads, color = "red") +
+  geom_spatvector(data = indiadistricts, fill = NA) +
+  theme_bw()
+
+```
+
+
+
+## Lines in polygons
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+indiaroads <- vect("week4files/indiaprimaryroads.shp")
+indiadistricts <- vect("week4files/india_2011_district.shp")
+
+ggplot() +
+  geom_spatvector(data = indiaroads, color = "red") +
+  geom_spatvector(data = indiadistricts, fill = NA) +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  coord_sf(datum = sf::st_crs(4326))
+
+```
+
+
+
+## Calculate intersections
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+# Note: This can take some time
+roadsint <- intersect(indiaroads, indiadistricts)
+
+dim(indiaroads)
+dim(roadsint)
+
+```
+
+- What function do we use for length?
+
+. . .
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+roadsint$length <- perim(roadsint)
+```
+
+
+
+## Aggregate to district
+
+- Make sure to use the correct identifier!
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+roadsint <- roadsint |>
+  as_tibble() |>
+  group_by(cartodb_id) |>
+  summarize(length = sum(length)) |>
+  ungroup() |>
+  # let's put it in km (default is m)
+  mutate(length = length/1000)
+
+```
+
+- How do we join it to the shapefile?
+
+
+
+## Aggregate to district
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+indiadistricts <- indiadistricts |>
+  left_join(roadsint, by = "cartodb_id")
+# if missing? zero!
+indiadistricts$length <- ifelse(is.na(indiadistricts$length), 0, indiadistricts$length)
+
+```
+
+
+
+## And plot it
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: false
+#| fig-align: center
+#| crop: true
+
+ggplot() + 
+  geom_spatvector(data = indiadistricts, aes(fill = length)) +
+  scale_fill_distiller("Length of\nprimary roads\n(km)", palette = "Spectral") +
+  theme_bw()
+
+```
+
+
+
+## And plot it
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+ggplot() + 
+  geom_spatvector(data = indiadistricts, aes(fill = length)) +
+  scale_fill_distiller("Length of\nprimary roads\n(km)", palette = "Spectral") +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
 
 
 ## Unions
 
 
-## Unions
+
+
+
+
+
+
+## Buffers
+
+
+
 
 
 

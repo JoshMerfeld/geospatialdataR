@@ -41,7 +41,8 @@ You can find the slides (and any data we will be using) for each week under thei
   - You can find the data for week 2 in the [week2files](week2files) folder.
 - Week 3:  You can find the slides for the the weekhere:  [week 3 slides](https://joshmerfeld.github.io/geospatialdataR/week3.html).
   - You can find the data for week 3 in the [week3files](week3files) folder.
-- Week 4: TBD
+- Week 4:  You can find the slides for the the weekhere:  [week 4 slides](https://joshmerfeld.github.io/geospatialdataR/week4.html).
+  - You can find the data for week 3 in the [week4files](week4files) folder.
 - Week 5: TBD
 - Week 5: TBD
 - Week 6: TBD
