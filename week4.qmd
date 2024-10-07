@@ -1,6 +1,6 @@
 ---
 title:  "Geospatial data analysis in R"
-subtitle: "Relating vector data"
+subtitle: "Relating vector data II"
 author: "Josh Merfeld"
 institute: "KDI School"
 date: "`r Sys.Date()`"
@@ -1128,11 +1128,14 @@ roadsint <- roadsint |>
 #| eval: true
 #| fig-align: center
 #| crop: true
-
+# need tidyterra for this!
 indiadistricts <- indiadistricts |>
   left_join(roadsint, by = "cartodb_id")
 # if missing? zero!
 indiadistricts$length <- ifelse(is.na(indiadistricts$length), 0, indiadistricts$length)
+
+# small note: you can also merge using terra::merge
+# indiadistricts <- merge(indiadistricts, roadsint, by.x = c("cartodb_id"), by.y = c("cartodb_id"))
 
 ```
 
@@ -1178,10 +1181,27 @@ ggplot() +
 
 
 
+## Buffers
 
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
 
+plants <- vect("week4files/plants.shp")
+# create buffer
+plantsbuffer <- buffer(plants, 50000)
+ggplot() + 
+  geom_spatvector(data = plantsbuffer, fill = "black", alpha = 0.5) +
+  geom_spatvector(data = indiadistricts, fill = NA, color = "gray") +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
 
-## Unions
+```
 
 
 
@@ -1191,6 +1211,332 @@ ggplot() +
 
 
 ## Buffers
+
+
+- I've used buffers for many things in the past!
+
+- The previous map shows coal plants in India
+  - I've created a buffer of 50 km around each plant
+  
+- What might we want to do with this buffer?
+
+
+
+
+## Buffers
+
+- Creating buffers is straightforward!
+  - Let's use the `plants.zip` file
+
+<br>
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: false
+#| fig-align: center
+#| crop: true
+
+plants <- vect("week4files/plants.shp")
+# create buffer
+plantsbuffer <- buffer(plants, 50000)
+ggplot() + 
+  geom_spatvector(data = plantsbuffer, fill = "black", alpha = 0.5) +
+  geom_spatvector(data = indiadistricts, fill = NA, color = "gray") +
+  theme_bw()
+
+```
+
+
+
+
+
+## Practice!
+
+- Time to practice again!
+
+- I'd like you to find the length of roads within 50 km of each coal plant in India
+  - Use the `indiaprimaryroads.zip` file
+  - Use the `plants.zip` file
+
+
+
+
+## Step 1
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+plants <- vect("week4files/plants.shp")
+# create buffer
+plantsbuffer <- buffer(plants, 50000)
+
+# roads
+indiaroads <- vect("week4files/indiaprimaryroads.shp")
+indiaroads <- project(indiaroads, crs(plants))
+# intersection
+roadsint <- intersect(indiaroads, plantsbuffer)
+
+```
+
+
+
+
+## Step 2
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+roadsint$area <- perim(roadsint)
+roadsint <- as_tibble(roadsint) |>
+  group_by(unit_id) |>
+  summarize(length = sum(area)) |>
+  ungroup()
+
+plantsbuffer <- plantsbuffer |>
+  left_join(roadsint, by = c("unit_id"))
+```
+
+
+
+
+## Plot it!
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: false
+#| fig-align: center
+#| crop: true
+
+ggplot() + 
+  geom_spatvector(data = plantsbuffer, aes(fill = length/1000)) +
+  geom_spatvector(data = indiadistricts, fill = NA, color = "gray", alpha = 0.5) +
+  scale_fill_distiller("Length of\nprimary roads\n(km)", palette = "Spectral") +
+  theme_bw()
+```
+
+
+
+
+## Plot it!
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+ggplot() + 
+  geom_spatvector(data = plantsbuffer, aes(fill = length/1000)) +
+  geom_spatvector(data = indiadistricts, fill = NA, color = "gray", alpha = 0.5) +
+  scale_fill_distiller("Length of\nprimary roads\n(km)", palette = "Spectral") +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+
+
+## Back to our Voronoi diagram
+
+- We want to use `intersect()` to only show the areas of the country (and not the entire bounding box)
+  - We'll use the `mw3` and `voronoi` objects
+
+
+
+
+
+
+
+
+
+## Back to our Voronoi diagram
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+# mw3
+mw3 <- vect("week4files/mw3allcountry.shp")
+# first aggregate to ID_1
+mw3 <- aggregate(mw3, "ID_1")
+# create centroids
+mw3centroids <- centroids(mw3)
+# now aggregate mw3 to country level
+mw3 <- aggregate(mw3)
+# bnd stands for "boundary"
+voronoi <- voronoi(mw3centroids, bnd = mw3)
+# why did I do it this way?
+voronoi <- intersect(voronoi, mw3)
+
+```
+
+
+
+
+
+
+
+
+
+## Back to our Voronoi diagram
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatvector(data = voronoi) +
+  geom_spatvector(data = mw3centroids) +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+
+
+
+
+## Your turn
+
+- Please create a Voronoi diagram for coal plants in India
+
+
+
+
+
+
+
+
+
+## Back to our Voronoi diagram
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+# plants
+plants <- vect("week4files/plants.shp")
+# districts
+indiadistricts <- vect("week4files/india_2011_district.shp")
+indiadistricts <- project(indiadistricts, crs(plants))
+# aggregate to india
+india <- aggregate(indiadistricts)
+# bnd stands for "boundary"
+voronoi <- voronoi(plants, bnd = india)
+# why did I do it this way?
+voronoi <- intersect(voronoi, india)
+
+```
+
+
+
+
+
+
+
+
+
+## Back to our Voronoi diagram
+
+```{r}
+#| echo: false
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatvector(data = voronoi) +
+  geom_spatvector(data = plants, size = 0.5) +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+
+## Extract
+
+- Some bad news: we've been doing some of this the hard way!
+  - It was good practice, though.
+  
+- For points, in particular, there's a much easier way to extract information about polygons
+  - The `extract` function
+
+
+
+
+
+
+## Extract
+
+```{r}
+#| echo: true
+#| include: true
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+# plants
+plants <- vect("week4files/plants.shp")
+# districts
+indiadistricts <- vect("week4files/india_2011_district.shp")
+indiadistricts <- project(indiadistricts, crs(plants))
+# note the order! 
+plantsextract <- extract(indiadistricts, plants)
+plants <- cbind(plants, plantsextract)
+plants
+```
+
+
+
+
+
+
+
+
+# Class exercise
+
+## Class exercise
+
 
 
 
