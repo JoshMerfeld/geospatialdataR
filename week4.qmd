@@ -1537,7 +1537,13 @@ plants
 
 ## Class exercise
 
+- Household data: `households.dta`
+- Hospitals: `hospitals.csv`
 
+- Tasks:
+  - Find number of hospitals within 25km of each household
+  - Create Voronoi polygons for hospitals
+    - Only show the polygons within the country
 
 
 
