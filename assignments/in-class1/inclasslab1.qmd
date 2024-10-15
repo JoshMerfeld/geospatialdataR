@@ -1,0 +1,38 @@
+---
+title: |
+        | In-class lab 1
+subtitle: |
+        | Geospatial analysis in R
+        | KDI School Fall 2024
+# Output type and options (no TOC and yes fig captions)
+format:
+  pdf:
+    toc: false
+
+# This includes latex arguments
+header-includes:
+  - \input{header.tex}
+
+---
+
+You can find all of the data in the assignments/in-class1/data folder. The datasets are:
+
+  - seoulgrid.shp: a grid of 100m x 100m cells covering Seoul
+  - seoulgu.shp: the administrative districts (gu/구) of Seoul
+  - seoulrail.shp: the rail stations in Seoul
+  - seoulwater.shp: the water bodies in Seoul
+  - seoulpoints.csv: points of interest in Seoul
+  
+By the end of class, you need to turn in a raw markdown file AND the pdf output. Please make sure ALL STUDENTS' names are on the assignment. Here are your tasks for today:
+
+  - Let's start easy. The grid shapefile has a variable in it: estimated population in the grid cell (from [WorldPop](https://www.worldpop.org/)). Load the grid shapefile and plot the population distribution in Seoul. Please make the map look nice.
+    - You'll notice there are a lot of grid cells with missing values. Please write what you think might be going on there.
+  - Next, filter out any grid cells that are majority water. Plot the population distribution in Seoul again.
+    - Please write what you think the missing values are again.
+  - I forgot to put the Gu identifier into the grid cells. Please add that using the seoulgu.shp file.
+
+
+  
+
+
+
