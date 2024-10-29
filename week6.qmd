@@ -1,0 +1,1363 @@
+---
+title:  "Geospatial data analysis in R"
+subtitle: "Raster data I"
+author: "Josh Merfeld"
+institute: "KDI School"
+date: "`r Sys.Date()`"
+
+date-format: long
+format: 
+  revealjs:
+    self-contained: true
+    slide-number: false
+    progress: false
+    theme: [serif, custom.scss]
+    width: 1500
+    height: 1500*(9/16)
+    code-copy: true
+    code-fold: show
+    code-overflow: wrap
+    highlight-style: github
+execute:
+  echo: true
+  warnings: false
+---
+
+
+```{r}
+#| label: setup
+#| include: false
+knitr::knit_hooks$set(crop = knitr::hook_pdfcrop)
+
+library(tidyverse)
+library(sf)
+library(terra)
+library(tidyterra)
+library(cowplot)
+library(kableExtra)
+library(haven)
+
+kdisgreen <- "#006334"
+accent <- "#340063"
+accent2 <- "#633400"
+kdisgray <- "#A7A9AC"
+
+```
+
+
+
+
+## Rasters
+
+- We've discussed shapefiles
+  -  Now let's talk about rasters!<br><br>
+  
+- Rasters are a different type of geospatial data
+  - They are made up of a grid of cells
+  - Each cell has a value
+
+
+
+
+## A raster with `terra`
+
+```{r}
+#| echo: false
+#| include: true
+#| fig-align: center
+#| crop: true
+# create example grid
+pikachu <- rast("week6assets/pikachu.png")
+
+ggplot() +
+  geom_spatraster_rgb(data = pikachu) +
+  theme_void() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+## Let's zoom in!
+
+## Let's zoom in!
+
+```{r}
+#| echo: false
+#| include: true
+#| fig-align: center
+#| crop: true
+# create example grid
+pikachu1 <- rast("week6assets/pikachu1.png")
+pikachu2 <- rast("week6assets/pikachu2.png")
+
+g1 <- ggplot() +
+  geom_spatraster_rgb(data = pikachu1) +
+  theme_void() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+g2 <- ggplot() +
+  geom_spatraster_rgb(data = pikachu2) +
+  theme_void() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+plot_grid(g1, g2)
+```
+
+
+
+
+
+## Example raster grid - how much info do we need?
+
+```{r}
+#| echo: false
+#| include: true
+#| fig-align: center
+#| crop: true
+# create example grid
+main <- ggplot() +
+  geom_hline(yintercept = 1:10, color = "black") +
+  geom_vline(xintercept = 1:10, color = "black") +
+  theme_bw() +
+  labs(x = "X", y = "Y") +
+  scale_x_continuous(breaks = 1:10, minor_breaks = NULL) +
+  scale_y_continuous(breaks = 1:10, minor_breaks = NULL) + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+gridexample <- ggdraw() +
+  draw_plot(
+    {
+      main +
+        coord_sf(
+          xlim = c(0.99, 10.01),
+          ylim = c(0.99, 10.01),
+          expand = FALSE) + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+    }
+)
+gridexample + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+- Here's a grid.
+  - How many points do we need?
+
+
+
+
+
+
+## Example raster grid - how much info do we need?
+
+```{r}
+#| echo: false
+#| include: true
+#| crop: true
+#| fig-align: center
+
+
+gridexample + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+- Need to know location of one grid cell...
+  - And the size of each grid!
+
+
+
+
+
+
+## How much info do we need?
+
+- In other words, we do not need a point for every raster cell<br><br>
+
+- We just need to know:
+  - The location of one cell
+  - The size of each cell
+    - This is called the `resolution` of the raster<br><br>
+    
+- Example:
+  - I know the first grid cell in bottom left is at (0, 0)
+  - I know each grid cell is 1 meter by 1 meter (the resolution)
+  - Then I know the exact location of every single grid cell
+
+
+
+
+
+
+## Population in Cotonou, Benin
+
+```{r}
+#| echo: false
+#| include: true
+#| crop: true
+#| fig-align: center
+
+library(tidyterra)
+
+tif <- rast("week6data/beninpop.tif")
+
+ggplot() +
+  geom_spatraster(data = tif, ) + 
+  scale_fill_distiller("Population\ncount", palette = "Spectral", na.value = "white") +
+  theme_bw() +
+  labs(subtitle = "Population in Cotonou, Benin") + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+- What are the white values?
+
+
+
+
+
+
+## Population in Cotonou, Benin
+
+- Here's the information for this raster
+  - What's the resolution? What are the units?
+
+
+```{r}
+#| echo: false
+#| include: true
+#| fig-align: center
+#| crop: true
+
+tif
+
+```
+
+
+
+
+
+
+## Rasters
+
+- Rasters are defined by the grid layout and the resolution
+  - Grid cells are sometimes called pixels (just like images, which are often rasters!)<br><br>
+
+- There are many different file types for rasters
+  - `.tif` or `.tiff` (one of the most common)
+  - `.nc` (NetCDF, common for very large raster data)
+  - Image files, e.g. `png`, `jpg`, etc.<br><br>
+
+
+
+
+
+
+## Reading rasters in R
+
+- Reading rasters is also quite easy!
+  - Going to use the `terra` package for it
+    - Note: can use `terra` for shapefiles, too
+  - `week6data/beninpop.tif` is a raster of population counts in Benin
+
+```{r}
+#| echo: true
+#| include: true
+#| fig-align: center
+#| crop: true
+library(terra)
+
+# this is the raster for Cotonou, Benin
+cotonou <- rast("week6data/beninpop.tif")
+cotonou
+```
+
+
+
+
+
+
+
+## Plotting rasters
+
+::: columns
+::: {.column width="55%"}
+
+- Plotting rasters only with `terra` is a bit of a pain
+  - Can't use `ggplot`
+  - So, I load another package that lets me use `ggplot` with rasters
+    - `tidyterra`
+
+```{r}
+#| echo: true
+#| eval: false
+#| fig-align: center
+#| crop: true
+library(tidyterra)
+
+ggplot() +
+  geom_spatraster(data = cotonou) + 
+  theme_bw()
+```
+
+:::
+
+::: {.column width="45%"}
+
+```{r}
+#| echo: false
+#| include: true
+#| fig-align: center
+#| crop: true
+library(tidyterra)
+
+ggplot() +
+  geom_spatraster(data = cotonou) + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+:::
+:::
+
+
+
+
+
+
+
+## Making it nicer
+
+::: columns
+::: {.column width="55%"}
+
+```{r}
+#| echo: true
+#| eval: false
+#| fig-align: center
+#| crop: true
+library(tidyterra)
+
+ggplot() +
+  geom_spatraster(data = cotonou) + 
+  # distiller is for continuous values
+  # but we can use palettes!
+  # I like spectral a lot
+  scale_fill_distiller("Population\ncount", 
+    palette = "Spectral", na.value = "white") +
+  theme_bw() +
+  labs(subtitle = "Population in Cotonou, Benin")
+```
+
+:::
+
+::: {.column width="45%"}
+
+```{r}
+#| echo: false
+#| include: true
+#| fig-align: center
+#| crop: true
+library(tidyterra)
+
+ggplot() +
+  geom_spatraster(data = cotonou) + 
+  scale_fill_distiller("Population\ncount", palette = "Spectral", na.value = "white") +
+  theme_bw() +
+  labs(subtitle = "Population in Cotonou, Benin") + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+:::
+:::
+
+
+
+
+
+
+
+## Extracting raster data to shapefiles
+
+- Let's go back to our use case:
+  - We want to estimate a sub-area model at the EA level in Malawi
+  - This means we need to extract raster data to the EA level
+  - We can do this with `terra`, `sf`, and `exactextractr`
+    - `terra` has its own method, but i find `exactextractr` to be MUCH faster<br><br>
+    
+- Let's start by looking at the raster I've uploaded to the `week6data`: `mwpop.tif`
+
+
+
+
+
+
+
+## Give it a try
+
+::: columns
+::: {.column width="55%"}
+
+- Try to load it into R using terra, then plot it with tidyterra and ggplot
+
+```{r}
+#| echo: true
+#| eval: false
+#| fig-align: center
+#| code-fold: show
+#| crop: true
+
+tif <- rast("week6data/mwpop.tif")
+
+ggplot() +
+  geom_spatraster(data = tif) + 
+  scale_fill_distiller("Population\ncount", 
+    palette = "Spectral", na.value = "white") +
+  theme_bw() +
+  labs(subtitle = "Population in Northern Malawi")
+```
+
+:::
+
+::: {.column width="45%"}
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: center
+#| code-fold: show
+#| crop: true
+
+tif <- rast("week6data/mwpop.tif")
+
+ggplot() +
+  geom_spatraster(data = tif) + 
+  scale_fill_distiller("Population\ncount", 
+    palette = "Spectral", na.value = "white") +
+  theme_bw() +
+  labs(subtitle = "Population in Northern Malawi") + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+:::
+:::
+
+
+
+
+
+
+
+## Give it a try
+
+::: columns
+::: {.column width="55%"}
+
+- I actually don't like that map! It's too hard to see because of all the low values.
+- So let's take logs, instead!
+  - Note that all the zeros become missing (can't log zero)
+
+```{r}
+#| echo: true
+#| eval: false
+#| fig-align: center
+#| code-fold: show
+#| crop: true
+
+tif <- rast("week6data/mwpop.tif")
+
+ggplot() +
+  geom_spatraster(data = log(tif)) + 
+  scale_fill_distiller("Population\ncount (log)", 
+    palette = "Spectral", na.value = "white") +
+  theme_bw() +
+  labs(subtitle = "Population in Northern Malawi")
+```
+
+:::
+
+::: {.column width="45%"}
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: center
+#| code-fold: show
+#| crop: true
+
+tif <- rast("week6data/mwpop.tif")
+
+ggplot() +
+  geom_spatraster(data = log(tif)) + 
+  scale_fill_distiller("Population\ncount (log)", 
+    palette = "Spectral", na.value = "white") +
+  theme_bw() +
+  labs(subtitle = "Population in Northern Malawi") + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+:::
+:::
+
+
+
+
+
+
+
+## We want to extract the .tif values to the .shp
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+tif <- rast("week6data/mwpop.tif")
+adm4 <- read_sf("week6data/mw4.shp")
+
+g1 <- ggplot() +
+  geom_spatraster(data = tif) + 
+  scale_fill_distiller("Population\ncount (log)", 
+    palette = "Spectral", na.value = "white") +
+  theme_bw() +
+  labs(subtitle = "Population in Northern Malawi") + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+g2 <- ggplot() +
+  geom_sf(data = adm4, color = "black", fill = "transparent", lwd = 0.1) + 
+  theme_bw() +
+  labs(subtitle = "EAs (admin4) Northern Malawi") + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+plot_grid(g1, NA, g2, ncol = 3, rel_widths = c(1, 0.05, 1)) + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+## Let's do it with `exactextractr`
+
+```{r}
+#| echo: true
+#| eval: false
+#| include: true
+#| fig-align: center
+#| crop: true
+library(exactextractr)
+
+tif <- rast("week6data/mwpop.tif")
+adm4 <- read_sf("week6data/mw4.shp")
+# make sure they are in the same CRS! (they already are, but just in case)
+# st_transform is for the sf object
+adm4 <- st_transform(adm4, crs = crs(tif))
+
+# extract the raster values to the shapefile
+# we are going to SUM, and add the EA_CODE from the shapefile to the result
+extracted <- exact_extract(tif, adm4, fun = "sum", append_cols = "EA_CODE")
+```
+
+```{r}
+#| echo: false
+#| eval: true
+#| include: false
+#| fig-align: center
+#| crop: true
+library(exactextractr)
+
+tif <- rast("week6data/mwpop.tif")
+adm4 <- read_sf("week6data/mw4.shp")
+# make sure they are in the same CRS! (they already are, but just in case)
+# st_transform is for the sf object
+adm4 <- st_transform(adm4, crs = crs(tif))
+
+# extract the raster values to the shapefile
+# we are going to SUM, and add the EA_CODE from the shapefile to the result
+extracted <- exact_extract(tif, adm4, fun = "sum", append_cols = "EA_CODE")
+# save it!
+write_csv(extracted |> rename(pop = sum), "week6data/mwpopEAs.csv")
+```
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+head(extracted)
+```
+
+
+
+
+
+
+
+## Now we can join the extracted data to the shapefile
+
+
+::: columns
+::: {.column width="55%"}
+
+
+```{r}
+#| echo: true
+#| eval: false
+#| include: true
+#| fig-align: center
+#| crop: true
+
+# join
+adm4 <- adm4 |>
+  left_join(extracted, by = "EA_CODE")
+
+# plot it!
+ggplot() +
+  geom_sf(data = adm4, aes(fill = sum), 
+    color = "black", lwd = 0.01) +
+  scale_fill_distiller("Population\ncount", 
+    palette = "Spectral", na.value = "white") +
+  theme_bw() +
+  labs(subtitle = "Population in EAs") + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+:::
+
+::: {.column width="45%"}
+
+![](week6assets/mwpopEAs.png){fig-align="center"}
+
+:::
+:::
+
+
+
+
+
+
+
+## We can also do it with `terra`
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+tif <- rast("week6data/mwpop.tif")
+adm4 <- vect("week6data/mw4.shp")
+# make sure they are in the same CRS! (they already are, but just in case)
+# st_transform is for the sf object
+adm4 <- terra::project(adm4, crs(tif))
+
+# we are going to SUM
+# just include EA_CODE
+extracted <- terra::extract(tif, adm4, fun = "sum")
+```
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+head(extracted)
+```
+
+
+
+
+
+
+
+## It's in the same order!
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+adm4$pop <- extracted$mwpop
+
+```
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+adm4
+```
+
+
+
+
+
+
+## Now it's your turn
+
+- Here's your task:
+  - Search for "worldpop population counts"
+    - Should be the first result (link: [https://hub.worldpop.org/project/categories?id=3](https://hub.worldpop.org/project/categories?id=3))
+  - Scroll down the page, click on "unconstrained individual countries 2000-2020 UN adjusted (1km resolution)
+
+![](week6assets/worldpoppage1.png){fig-align="center"}
+
+
+
+
+
+
+## Now it's your turn
+
+- Here's your task:
+  - Search for "worldpop population counts"
+    - Should be the first result (link: [https://hub.worldpop.org/project/categories?id=3](https://hub.worldpop.org/project/categories?id=3))
+  - Scroll down the page, click on "unconstrained individual countries 2000-2020 UN adjusted (1km resolution)
+  - Then, search for a country (maybe yours?)
+
+![](week6assets/worldpoppage2.png){fig-align="center"}
+
+
+
+
+
+## Now it's your turn
+
+- Here's your task:
+  - Search for "worldpop population counts"
+    - Should be the first result (link: [https://hub.worldpop.org/project/categories?id=3](https://hub.worldpop.org/project/categories?id=3))
+  - Scroll down the page, click on "unconstrained individual countries 2000-2020 UN adjusted (1km resolution)
+  - Then, search for a country (maybe yours?)
+  - Click on "Data & Resources" for 2020
+  - Scroll down to the bottom of the page and download the .tif
+
+
+
+
+
+## Now it's your turn
+
+- Load the .tif into R using `terra`
+- Plot the raster using `tidyterra` and `ggplot`
+  - Make it look nice!
+
+
+
+
+
+## Let's keep going!
+
+- Now you need to find a shapefile for the same country
+- This will be a bit less straightforward
+  - Search for "shapefile COUNTRY humdata"
+  - You should find a link to the Humanitarian Data Exchange
+  - Click on it and see if it has shapefiles for your country of choice
+  - If so, download a shapefile (it can be at a higher admin level)
+    - If not, raise your hand and I'll come help you find a shapefile
+  - Load it into R and plot it!
+
+
+
+
+
+## One last thing
+
+- You have the population tif and the shapefile
+- Extract the population data (using sum, don't forget!) to the shapefile
+  - Use `append_cols` and make sure you choose the correct identifier!
+- Join the data to the shapefile
+- Plot the shapefile with the population data
+  - Make it look nice!
+
+
+
+
+
+## What can you do with that data?
+
+- Now you have a shapefile with population data
+- You can save it as a `.csv` and use it in your analysis!
+  - `write_csv(NAME, PATH)`
+
+
+
+
+
+## Creating a grid
+
+- Yesterday, we used a grid in Korea
+  - kgrid.shp
+
+- By now, you can probably see that a grid is very similar to a raster!
+
+
+
+
+
+## Load the shapefile
+
+- Let's load kshape.shp
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+kshape <- vect("week6data/kshape.shp")
+kgrid <- rast(kshape, res = 5000)
+kgrid <- as.polygons(kgrid)
+kgrid$id <- 1:nrow(kgrid)
+```
+
+
+
+
+
+## The grid
+
+```{r}
+#| echo: false
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatvector(data = kgrid) +
+  theme_bw()
+```
+
+
+
+
+
+## Not quite done
+
+- We aren't quite done. What do we want to do now?
+
+. . .
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+intersection <- intersect(kshape, kgrid)
+kgrid <- kgrid |>
+  filter(id %in% intersection$id)
+```
+
+
+
+
+
+## Not quite done
+
+```{r}
+#| echo: false
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+ggplot() + geom_spatvector(data = kgrid)
+```
+
+
+
+
+
+
+
+## Your turn!
+
+- Find the population raster for Korea on Worldpop
+
+. . .
+
+- Extract the TOTAL population in each grid cell
+
+. . .
+
+- Plot it!
+
+
+
+
+
+
+
+
+
+## Let's have a little fun with maps!
+
+```{r}
+#| echo: false
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+library(gganimate)
+
+mwrast <- rast("week6data/mwndvimonths.tif")
+adm4 <- vect("week6data/mw4.shp")
+mwrast <- terra::project(mwrast, crs(adm4))
+
+extract <- terra::extract(mwrast, adm4, fun = "mean")
+extract$EA_CODE <- adm4$EA_CODE
+extract <- extract[,-1]
+
+# pivot longer
+extract <- extract |> pivot_longer(cols = -EA_CODE, names_to = "month", values_to = "ndvi")
+extract <- extract |>
+  filter(month %in% month.abb[seq(from = 1, to = 9, by = 1)])
+extract$monthint <- match(extract$month, month.abb)
+
+adm4 <- adm4 |>
+  left_join(extract, by = "EA_CODE")
+
+ggplot(adm4) +
+  geom_spatvector(aes(fill = ndvi), color = NA) +
+  scale_fill_distiller("NDVI", palette = "RdYlGn", 
+    na.value = "white", direction = 1) +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  # Here comes the gganimate code
+  transition_manual(
+                    frames = monthint,
+                    cumulative = FALSE
+                    ) +
+  labs(title = "Month: {(adm4 |> filter(monthint==current_frame))$month[1]}")
+
+```
+
+
+
+
+
+
+
+
+
+
+## How do we do this?
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+# load raster
+mwrast <- rast("week6data/mwndvimonths.tif")
+# vector
+adm4 <- vect("week6data/mw4.shp")
+# project
+mwrast <- terra::project(mwrast, crs(adm4))
+
+# extract
+extract <- terra::extract(mwrast, adm4, fun = "mean")
+
+head(extract)
+```
+
+
+
+
+
+## How do we do this?
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+# it's in the same order, so we can just do this
+extract$EA_CODE <- adm4$EA_CODE
+# remove the "ID" column
+extract <- extract[,-1]
+```
+
+- To do this, we need to "reshape" the data
+  - Each row needs to be an EA/month observation
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+# pivot longer
+extract <- extract |> 
+  pivot_longer(cols = -EA_CODE, names_to = "month", values_to = "ndvi")
+head(extract)
+```
+
+
+
+
+
+## How do we do this?
+
+- To keep things manageable (in terms of memory), let's just keep months one through six
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+# filter
+extract <- extract |>
+  filter(month %in% month.abb[1:6])
+# match! We need an integer value below
+extract$monthint <- match(extract$month, month.abb)
+head(extract)
+
+# then join to adm4
+adm4 <- adm4 |>
+  left_join(extract, by = "EA_CODE")
+nrow(adm4)
+```
+
+
+
+
+
+## And the code
+
+- Note this can take some time!
+
+```{r}
+#| echo: true
+#| eval: false
+#| include: true
+#| fig-align: center
+#| crop: true
+
+library(gganimate)
+ggplot(adm4) +
+  geom_spatvector(aes(fill = ndvi), color = NA) +
+  scale_fill_distiller("NDVI", palette = "RdYlGn", 
+    na.value = "white", direction = 1) +
+  theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) +
+  # Here comes the gganimate code
+  transition_manual(
+                    frames = monthint,
+                    cumulative = FALSE
+                    ) +
+  labs(title = "Month: {(adm4 |> filter(monthint==current_frame))$month[1]}")
+
+```
+
+- This will create a gif that shows the NDVI values for each EA in Malawi over the first six months of the year!
+
+
+
+## Group activity
+
+- Here's your task:
+  - Create a grid for Seoul (only!)
+  - Pull five years of raster data from WorldPop
+  - Instead of creating a gif, I want you to use `facet_wrap` (or `facet_grid`) to show the pop values for each year in a separate panel
+
+
+
+
+
+# Imagery
+
+## Satellite imagery
+
+- Satellite imagery is also saved as rasters
+  - But they are usually much larger
+  - And they have multiple bands
+    - Each band is a different "color" (or wavelength)
+    - For example, red, green, blue, near-infrared, etc.
+  - This is how we get "true color" images
+    - Red, green, blue bands are combined to make an image
+    
+    
+    
+
+## Can load using terra
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+image <- rast("week6data/imageryexample.tiff")
+
+image
+```
+
+- A bunch of bands! Let's figure out what they are
+
+. . .
+
+- Search for Harmonized Sentinel-2 MSI: MultiSpectral Instrument, Level-2A
+  - Google Earth Engine
+    
+
+    
+    
+    
+
+## Easiest way to plot: `plotRGB`
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+plotRGB(image)
+```
+    
+    
+    
+    
+## Let's set the names!
+
+- Oh no!
+
+- What's going on?
+
+. . .
+
+- Let's look at the help documentation for plotRGB:
+
+````{markdown}
+plotRGB(x, r=1, g=2, b=3, a=NULL, scale=NULL, mar=0, 
+		stretch=NULL, smooth=TRUE, colNA="white", alpha=NULL, bgalpha=NULL, 
+		zlim=NULL, zcol=FALSE, axes=FALSE ,...)
+````
+    
+
+    
+    
+    
+
+## Easiest way to plot: `plotRGB`
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+plotRGB(image, r = 4, g = 3, b = 2)
+```
+
+
+
+
+
+## With tidyterra
+
+```{r}
+#| echo: true
+#| eval: false
+#| include: true
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatraster_rgb(data = image, r = 4, g = 3, b = 2) +
+  theme_void()
+```
+
+```{r}
+#| echo: false
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+ggplot() +
+  geom_spatraster_rgb(data = image, r = 4, g = 3, b = 2) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+## Satellite imagery
+
+- Those options plot the red, green, and blue
+  - RGB is the default order in the plotting functions
+  - Sometimes a raster might be saved different, however
+
+. . .
+
+- Satellite imagery is also used to create vegetation indices!
+  - We will use the NIR for this
+
+
+
+
+
+
+## Vegetation indices
+
+- NDVI (Normalized Difference Vegetation Index):
+
+$$ NDVI = \frac{NIR - RED}{NIR + RED} $$
+
+
+- EVI (Enhanced Vegetation Index):
+
+$$ NDVI = G\times\frac{NIR - RED}{NIR + C_1\times RED - C_2\times BLUE+L} $$
+In MODIS: $L=1$, $C_1=6$, $C_2=7.5$, $G=2.5$
+
+
+
+
+
+## Calculating NDVI
+
+```{r}
+#| echo: false
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+image$ndvi <- (image$B8 - image$B4) / (image$B8 + image$B4)
+
+g1 <- ggplot() +
+  geom_spatraster_rgb(data = image, r = 4, g = 3, b = 2) +
+  theme_void() + labs(subtitle = "A. RGB Image")
+g2 <- ggplot() +
+  geom_spatraster(data = image, aes(fill = ndvi), show.legend = FALSE) +
+  scale_fill_distiller("NDVI", palette = "RdYlGn", na.value = "white", direction = 1) +
+  theme_void() + labs(subtitle = "B. NDVI")
+plot_grid(g1, g2) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+## Calculating NDVI
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+names(image)
+
+image$ndvi <- (image$B8 - image$B4) / (image$B8 + image$B4)
+
+g1 <- ggplot() +
+  geom_spatraster_rgb(data = image, r = 4, g = 3, b = 2) +
+  theme_void() + labs(subtitle = "A. RGB Image")
+g2 <- ggplot() +
+  geom_spatraster(data = image, aes(fill = ndvi), show.legend = FALSE) +
+  scale_fill_distiller("NDVI", palette = "RdYlGn", na.value = "white", direction = 1) +
+  theme_void() + labs(subtitle = "B. NDVI")
+```
+
+
+
+
+
+
+## Calculating NDVI
+
+```{r}
+#| echo: true
+#| eval: true
+#| include: true
+#| fig-align: center
+#| crop: true
+
+plot_grid(g1, g2) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+# To Google Earth Engine!
+
+
+## Code
+
+````{markdown}
+var dataset = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+                  .filterDate('2023-04-01', '2023-04-30')
+                  // Pre-filter to get less cloudy granules.
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE',10));
+
+// Get an image from the dataset
+var image = dataset.mean().clip(XXXXX); // SPECIFY!
+
+// Export the image as a GeoTIFF
+Export.image.toDrive({
+  image: image,
+  description: 'NAME',
+  scale: 10, // Define the scale in meters
+  region: XXXXX,
+  fileFormat: 'GeoTIFF',
+  maxPixels: 1e13 // Adjust if needed depending on the size of data
+});
+````
+
+

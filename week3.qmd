@@ -45,7 +45,7 @@ kdisgray <- "#A7A9AC"
 
 
   
-  
+
 ## Getting started with geospatial data, part II
 
 - What are we doing today?
