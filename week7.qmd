@@ -53,17 +53,14 @@ kdisgray <- "#A7A9AC"
 
 - A short review of in-class lab 1
 
-<br>
-
 - Installing Python and Positron for the GEE API
 
 
 
-# In-class lab 1
+## In-class lab 1
 
 - Let's go over a few things from in-class lab 1
 
-<br>
 
 - Three things I want to cover:
   - Making maps look nice
