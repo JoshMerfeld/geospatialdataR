@@ -37,16 +37,17 @@ You can find the slides (and any data we will be using) for each week under thei
 
 - Week 1: You can find the slides for the the week here: [week 1 slides](https://joshmerfeld.github.io/geospatialdataR/week1both.html).
   - You can find the data for week 1 in the [week1data](week1data) folder or by clicking [here](week1data/data.csv) (you can download the csv in the upper-right-hand corner).
-- Week 2:  You can find the slides for the the weekhere:  [week 2 slides](https://joshmerfeld.github.io/geospatialdataR/week2.html).
+- Week 2: You can find the slides for the the week here: [week 2 slides](https://joshmerfeld.github.io/geospatialdataR/week2.html).
   - You can find the data for week 2 in the [week2files](week2files) folder.
-- Week 3:  You can find the slides for the the weekhere:  [week 3 slides](https://joshmerfeld.github.io/geospatialdataR/week3.html).
+- Week 3: You can find the slides for the the week here: [week 3 slides](https://joshmerfeld.github.io/geospatialdataR/week3.html).
   - You can find the data for week 3 in the [week3files](week3files) folder.
-- Week 4:  You can find the slides for the the weekhere:  [week 4 slides](https://joshmerfeld.github.io/geospatialdataR/week4.html).
-  - You can find the data for week 3 in the [week4files](week4files) folder.
-- Week 5: TBD
-- Week 5: TBD
-- Week 6: TBD
-- Week 7: TBD
+- Week 4: You can find the slides for the the week here: [week 4 slides](https://joshmerfeld.github.io/geospatialdataR/week4.html).
+  - You can find the data for week 4 in the [week4files](week4files) folder.
+- Week 5: In-class lab
+- Week 6: You can find the slides for the the week here: [week 6 slides](https://joshmerfeld.github.io/geospatialdataR/week6.html).
+  - You can find the data for week 6 in the [week6files](week6files) folder.
+- Week 7: You can find the slides for the the week here: [week 7 slides](https://joshmerfeld.github.io/geospatialdataR/week7.html).
+  - You can find the data for week 6 in the [week7files](week7files) folder.
 - Week 8: TBD
 - Week 9: TBD
 - Week 10: TBD
