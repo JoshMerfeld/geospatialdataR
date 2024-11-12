@@ -836,29 +836,7 @@ plot_grid(g1, g2, g3, ncol = 3) +
 
 ## Some fun with maps!
 
-```{r}
-#| echo: false
-#| eval: true
-#| crop: true
-#| fig-align: center
-#| message: false
-
-library(rayshader)
-g1 <- ggplot() + 
-  geom_spatvector(data = gamonth, aes(fill = idwbeta1), color = NA) +
-  scale_fill_distiller("PM 2.5", palette = "Spectral") +
-  theme_bw() + 
-  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
-  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
-
-par(mfrow = c(1, 1))
-plot_gg(g1, multicore = TRUE, theta = 10, phi = 55,
-  scale = 300, width = 5, height = 6, sunangle = 30, windowsize = c(1000, 800))
-Sys.sleep(2)
-render_snapshot(clear = TRUE)
-
-```
-
+![](week8assets/rayshader){width=100% fig-align="center"}
 
 
 
