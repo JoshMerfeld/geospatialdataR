@@ -1,6 +1,7 @@
 # load libraries
 import ee
 import geopandas as gpd
+import geetools
 
 ee.Authenticate()
 ee.Initialize(project="ee-geefolder")
@@ -47,6 +48,14 @@ task.start()
 task.status()
 
 
+ee.batch.Export.geetools.imagecollection.toDrive(
+    imagecollection = ndvi,
+    index_property = "system:id",
+    folder = "ndvi",
+    description = "ndvi",
+    scale = 1000,
+    region = bbox
+)
 
 
 

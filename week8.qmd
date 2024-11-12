@@ -1,0 +1,1246 @@
+---
+title:  "Geospatial data analysis in R"
+subtitle: "Spatial interpolation"
+author: "Josh Merfeld"
+institute: "KDI School"
+date: "11-12-2024"
+
+date-format: long
+format: 
+  revealjs:
+    self-contained: true
+    slide-number: false
+    progress: false
+    theme: [serif, custom.scss]
+    width: 1500
+    height: 1500*(9/16)
+    code-copy: true
+    code-fold: show
+    code-overflow: wrap
+    highlight-style: github
+execute:
+  echo: true
+  warnings: false
+  message: false
+---
+
+
+```{r}
+#| label: setup
+#| include: false
+knitr::knit_hooks$set(crop = knitr::hook_pdfcrop)
+
+Sys.setenv("RETICULATE_PYTHON" = paste0(getwd(), "/classenv/bin/python"))
+library(reticulate)
+use_virtualenv(paste0(getwd(), "/classenv"), required=TRUE)
+
+library(tidyverse)
+library(terra)
+library(tidyterra)
+library(cowplot)
+library(kableExtra)
+library(gstat)
+library(automap)
+
+kdisgreen <- "#006334"
+accent <- "#340063"
+accent2 <- "#633400"
+kdisgray <- "#A7A9AC"
+
+```
+
+
+## What are we doing today?
+
+- Getting raw data ready for analysis
+
+- Spatial interpolation
+
+
+
+
+
+
+## What is this?
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+
+ga <- vect("week8files/tl_2020_13_tract.shp")
+ggplot() +
+  geom_spatvector(data = ga, lwd = 0.05, fill = NA) +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+## Getting raw data ready for analysis
+
+- Let's download some pollution data
+  - [US Environmental Protection Agency (EPA) website](https://www.epa.gov/outdoor-air-quality-data/download-daily-data)
+  - [https://www.epa.gov/outdoor-air-quality-data/download-daily-data](https://www.epa.gov/outdoor-air-quality-data/download-daily-data)
+
+- Going to download one pollution indicator for now:
+  - PM2.5 (particulate matter 2.5 micrometers or less in diameter)
+  - Only for Georgia in 2020
+
+
+
+
+
+
+## Downloading the data
+
+![](week8assets/pm1){width=100% fig-align="center"}
+
+## Downloading the data
+
+![](week8assets/pm2){width=100% fig-align="center"}
+
+
+
+
+
+
+## Let's look at the data
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| class-output: .hscroll
+
+pm <- read_csv("week8files/GApm.csv")
+summary(pm)
+```
+
+
+
+
+
+
+## Some cleaning
+
+- Let's clean the raw PM data a bit
+
+- First, let's turn "Date" into an actual date
+- Then, we will keep just the columns we want
+- Finally, let's turn it into a shapefile
+
+
+
+
+
+
+
+## First, to date
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| class-output: .hscroll
+# first, to date
+pm$Date[1] # note the format
+pm$date <- mdy(pm$Date) # month day year (from the lubridate package, part of tidyverse)
+head(pm$date)
+class(pm$date)
+```
+
+
+
+
+
+
+
+## An aside on dates
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| class-output: .hscroll
+head(year(pm$date))
+head(month(pm$date))
+head(day(pm$date))
+```
+
+
+
+
+
+
+
+## An aside on dates
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| class-output: .hscroll
+table(month(pm$date))
+```
+
+
+
+
+
+
+
+## Just the columns we want
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| class-output: .hscroll
+colnames(pm)
+```
+
+
+
+
+
+## Just the columns we want
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| class-output: .hscroll
+# note the syntax here!
+pm <- pm |>
+  select(siteid = `Site ID`, date, pm25 = `Daily Mean PM2.5 Concentration`, 
+    AQI = `Daily AQI Value`, lon = `Site Longitude`, lat = `Site Latitude`)
+pm
+```
+
+
+
+
+
+
+
+## Finally, to shapefile
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| class-output: .hscroll
+pm <- vect(pm, geom = c("lon", "lat"), crs = "EPSG:4326")
+pm
+```
+
+
+
+
+
+
+
+## Let's look only at observations from January
+
+- Note that the shapefile is for "census blocks" for the entire state of Georgia
+
+```{r}
+#| echo: true
+#| eval: false
+#| crop: true
+#| class-output: .hscroll
+ga <- vect("week8files/tl_2020_13_tract.shp")
+# make sure it's the same crs
+ga <- project(ga, crs(pm))
+ggplot() +
+  geom_spatvector(data = ga, lwd = 0.05, color = "gray", fill = NA) +
+  geom_spatvector(data = pm |> filter(month(date)==1), color = "red") +
+  theme_bw()
+```
+
+
+
+
+
+
+
+## Let's look only at observations from January
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+ga <- vect("week8files/tl_2020_13_tract.shp")
+# make sure it's the same crs
+ga <- project(ga, crs(pm))
+ggplot() +
+  geom_spatvector(data = ga, lwd = 0.05, color = "gray", fill = NA) +
+  geom_spatvector(data = pm |> filter(month(date)==1), color = "red") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+## Our goal
+
+- What do we want to do with this data?
+
+- We want to look at poverty rates at the census tract level and how they vary with average pollution levels
+
+- But we cannot do that yet. Why?
+
+. . .
+
+- We only have 20-something pollution stations in Georgia. We need to interpolate!
+
+
+
+
+
+
+
+## Interpolation
+
+- There are many ways to interpolate
+  - Interpolation is the process of estimating values between known data points
+  
+. . .
+
+- Perhaps the simplest: use Voronoi polygons
+  - We already know how to do this!
+
+
+
+
+
+
+
+## Interpolation with Voronoi polygons
+
+- What are we going to do?
+
+. . .
+
+```{r}
+#| echo: true
+#| eval: false
+#| crop: true
+#| fig-align: center
+pmunique <- pm |>
+  group_by(siteid) |>
+  filter(row_number() == 1) |>
+  ungroup()
+voronoiga <- voronoi(pmunique, bnd = ga)
+ggplot() +
+  geom_spatvector(data = ga, lwd = 0.05, color = "gray", fill = NA) +
+  geom_spatvector(data = voronoiga, lwd = 0.05, color = "blue", fill = NA) +
+  geom_spatvector(data = pm |> filter(month(date)==1), color = "red") +
+  theme_bw()
+```
+
+
+
+
+
+
+
+## Interpolation with Voronoi polygons
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+# keep one observation per station
+pmunique <- pm |>
+  group_by(siteid) |>
+  filter(row_number() == 1) |>
+  ungroup()
+voronoiga <- voronoi(pmunique, bnd = ga)
+ggplot() +
+  geom_spatvector(data = ga, lwd = 0.05, color = "gray", fill = NA) +
+  geom_spatvector(data = voronoiga, lwd = 0.05, color = "blue", fill = NA) +
+  geom_spatvector(data = pm |> filter(month(date)==1), color = "red") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+## Interpolation with Voronoi polygons
+
+- With the polygons, what are our options?
+
+. . .
+
+- We could find the overlap between the census tracts and voronoi polygons and either:
+  - Option 1: Assign the pollution value from voronoi polygon with highest overlap
+  - Option 2: Create a weighted average of pollution values based on overlap
+- Option 3: We could also just find the location of the centroid for each census tract and assign the pollution value from the voronoi polygon that contains it
+
+. . .
+
+- Let's try options 1 and 3!
+
+
+
+
+
+
+
+## Option 1: largest overlap
+
+- Try it!
+  - Calculate mean pollution levels by station for JANUARY
+  - Find the intersections between the census tracts and the voronoi polygons
+  - Find the voronoi polygon with the largest overlap for each census tract
+  - Find a way to add the pollution value for January to the census tract shapefile
+
+
+
+
+
+
+
+## Mean pollution by month
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| fig-align: center
+# keep one observation per station
+pmmonth <- pm |>
+  filter(month(date)==1) |>
+  group_by(siteid) |>
+  summarize(pm25 = mean(pm25, na.rm = TRUE), .groups = "drop")
+```
+
+
+
+
+
+
+
+## Intersections
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| fig-align: center
+# Intersection
+vorintersect <- intersect(ga, voronoiga)
+# find area
+vorintersect$area <- expanse(vorintersect)
+# group by GEOID and find largest value
+vorintersect <- vorintersect |>
+  group_by(GEOID) |>
+  filter(area==max(area)) |>
+  ungroup() |>
+  # now keep just the site id and geoid
+  select(GEOID, siteid) |>
+  as_tibble()
+```
+
+
+
+
+
+
+
+## Add and plot
+
+```{r}
+#| echo: true
+#| eval: false
+#| crop: true
+#| fig-align: center
+vorintersect <- vorintersect |>
+  left_join(as_tibble(pmmonth), by = "siteid")
+head(vorintersect)
+gamonth <- ga |>
+  left_join(vorintersect, by = "GEOID")
+ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = pm25), color = NA) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  theme_bw()
+```
+
+
+
+
+
+
+
+## Add and plot
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+vorintersect <- vorintersect |>
+  left_join(as_tibble(pmmonth), by = "siteid")
+gamonth <- ga |>
+  left_join(vorintersect, by = "GEOID")
+ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = pm25), color = NA) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+## By centroids
+
+```{r}
+#| echo: true
+#| eval: false
+#| crop: true
+#| fig-align: center
+# create centroids
+gacentroids <- centroids(ga)
+#intersect
+vorcentroids <- intersect(gacentroids, voronoiga)
+# create new gamonth
+gamonth <- ga |>
+  mutate(siteid = vorcentroids$siteid)
+gamonth <- gamonth |>
+  left_join(as_tibble(pmmonth), by = "siteid")
+ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = pm25), color = NA) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+## By centroids
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+# create centroids
+gacentroids <- centroids(ga)
+#intersect
+vorcentroids <- intersect(gacentroids, voronoiga)
+# create new gamonth
+gamonth <- ga |>
+  mutate(siteid = vorcentroids$siteid)
+gamonth <- gamonth |>
+  left_join(as_tibble(pmmonth), by = "siteid")
+ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = pm25), color = NA) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+## This is probably not ideal...
+
+- Doesn't look ideal. Why?
+
+
+
+
+
+
+
+## Alternative interpolation methods
+
+- So what other alternatives do we have? Can you think of other options?
+
+. . .
+
+- We're going to open up the possibilities with a new `R` package: `gstat`
+
+```{r}
+#| echo: true
+#| eval: false
+#| crop: true
+#| fig-align: center
+install.package("gstat")
+library(gstat)
+```
+
+
+
+
+
+
+
+## New option 1: inverse distance weighting
+
+- Consider the following equation:
+
+$$ \hat{y}_0 = \frac{\sum_{i=1}^{n} y_i\times\left(\frac{1}{d_i^\beta}\right)}{\sum_{i=1}^{n}\left(\frac{1}{d_i^\beta}\right)} $$
+
+- $\hat{y}_0$ is what we want to predict at point $0$
+- $y_i$ is the value at point $i$ (the weather stations)
+- $d_i$ is the distance between point $0$ and point $i$
+- $\beta$ is a parameter that determines how much to weight the distance
+  - If $\beta=1$, this is traditionally called "inverse distance weighting"
+
+
+
+
+
+
+## How do we set this up?
+
+1. We need a list of points where we want to predict
+2. We need a list of points where we have data (we already have this)
+
+. . .
+
+- Also a small complication: `gstat` does not work with `terra` objects!
+  - We are going to use `sf`
+  - However, I am *not* going to load the package. Instead, I will use `sf::st_as_sf()` to turn `terra` objects into `sf` objects
+
+
+
+
+
+
+## How do we set this up?
+
+- Here's the code:
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| fig-align: center
+# new points
+grid <- centroids(ga)
+# Note: how I convert to sf inside the call!
+# Note: idp is the "beta" from above
+grid <- idw(pmmonth$pm25 ~ 1, sf::st_as_sf(pmmonth), 
+  newdata = sf::st_as_sf(grid), idp = 1)
+grid
+```
+
+
+
+
+
+
+## Let's add it back into the `ga` object
+
+- Here's the code:
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| fig-align: center
+
+gamonth$idwbeta1 <- grid$var1.pred
+
+```
+
+
+
+
+
+
+## Comparing values of $\beta$
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+#| message: false
+grid <- centroids(ga)
+# Note: how I convert to sf inside the call!
+# Note: idp is the "beta" from above
+grid2 <- idw(pmmonth$pm25 ~ 1, sf::st_as_sf(pmmonth), newdata = sf::st_as_sf(grid), idp = 2)
+gamonth$idwbeta2 <- grid2$var1.pred
+# Note: how I convert to sf inside the call!
+# Note: idp is the "beta" from above
+grid3 <- idw(pmmonth$pm25 ~ 1, sf::st_as_sf(pmmonth), newdata = sf::st_as_sf(grid), idp = 3)
+gamonth$idwbeta3 <- grid3$var1.pred
+
+g1 <- ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = idwbeta1), color = NA, show.legend = FALSE) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  labs(subtitle = expression("Panel A: "~beta~" = 1")) +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+g2 <- ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = idwbeta2), color = NA, show.legend = FALSE) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  labs(subtitle = expression("Panel B: "~beta~" = 2")) +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+g3 <- ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = idwbeta3), color = NA, show.legend = FALSE) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  labs(subtitle = expression("Panel C: "~beta~" = 3")) +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+plot_grid(g1, g2, g3, ncol = 3) + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+## We can control how many points to use
+
+```{r}
+#| echo: true
+#| eval: false
+#| crop: true
+#| fig-align: center
+#| message: false
+grid <- centroids(ga)
+grid <- idw(pmmonth$pm25 ~ 1, sf::st_as_sf(pmmonth), 
+  newdata = sf::st_as_sf(grid), nmax = 1)
+gamonth$idwbetavor <- grid$var1.pred
+
+ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = idwbetavor), color = NA, show.legend = FALSE) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  labs(subtitle = expression("Panel A: "~beta~" = 1")) +
+  theme_bw()
+```
+
+
+
+
+
+
+## What does this look like??
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+#| message: false
+grid <- centroids(ga)
+grid <- idw(pmmonth$pm25 ~ 1, sf::st_as_sf(pmmonth), newdata = sf::st_as_sf(grid), nmax = 1)
+gamonth$idwbetavor <- grid$var1.pred
+
+ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = idwbetavor), color = NA, show.legend = FALSE) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+## Comparing `nmax`
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+#| message: false
+grid <- centroids(ga)
+grid2 <- idw(pmmonth$pm25 ~ 1, sf::st_as_sf(pmmonth), newdata = sf::st_as_sf(grid), nmax = 2)
+grid3 <- idw(pmmonth$pm25 ~ 1, sf::st_as_sf(pmmonth), newdata = sf::st_as_sf(grid), nmax = 10)
+gamonth$idwbetavor2 <- grid2$var1.pred
+gamonth$idwbetavor3 <- grid3$var1.pred
+
+g1 <- ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = idwbetavor), color = NA, show.legend = FALSE) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  labs(subtitle = "Panel A: 1 neighbor") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+g2 <- ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = idwbetavor2), color = NA, show.legend = FALSE) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  labs(subtitle = "Panel B: 2 neighbors") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+g3 <- ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = idwbetavor3), color = NA, show.legend = FALSE) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  labs(subtitle = "Panel C: 10 neighbors") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+plot_grid(g1, g2, g3, ncol = 3) + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+## Some fun with maps!
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+#| message: false
+
+library(rayshader)
+g1 <- ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = idwbeta1), color = NA) +
+  scale_fill_distiller("PM 2.5", palette = "Spectral") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+par(mfrow = c(1, 1))
+plot_gg(g1, multicore = TRUE, theta = 10, phi = 55,
+  scale = 300, width = 5, height = 6, sunangle = 30, windowsize = c(1000, 800))
+Sys.sleep(2)
+render_snapshot(clear = TRUE)
+
+```
+
+
+
+
+
+
+
+
+## Some fun with maps!
+
+```{r}
+#| echo: true
+#| eval: false
+#| crop: true
+#| fig-align: center
+#| message: false
+
+library(rayshader)
+g1 <- ggplot() + 
+  geom_spatvector(data = gamonth, aes(fill = idwbeta1), color = NA) +
+  scale_fill_distiller("PM 2.5", palette = "Spectral") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+plot_gg(g1, multicore = TRUE, theta = 10, phi = 45)
+```
+
+
+
+
+
+
+## Let's move to California (which has more data)
+
+```{r}
+#| echo: true
+#| eval: false
+#| crop: true
+#| fig-align: center
+#| message: false
+
+capm <- read_csv("week8files/CApm25.csv")
+capm$Date[1] 
+capm$date <- mdy(capm$Date)
+capm <- capm |>
+  select(siteid = `Site ID`, date, pm25 = `Daily Mean PM2.5 Concentration`, 
+    AQI = `Daily AQI Value`, lon = `Site Longitude`, lat = `Site Latitude`)
+capm <- vect(capm, geom = c("lon", "lat"), crs = "EPSG:4326")
+
+# just keep january, and one observation per station
+camonth <- capm |>
+  filter(month(date)==1) |>
+  group_by(siteid) |>
+  summarize(pm25 = mean(pm25, na.rm = TRUE), .groups = "drop")
+
+# and the shapefile
+ca <- vect("week8files/tl_2020_06_tract.shp")
+# project
+ca <- project(ca, crs(camonth))
+
+```
+
+
+
+
+
+
+## Let's move to California (which has more data)
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+#| message: false
+
+capm <- read_csv("week8files/CApm25.csv")
+capm$Date[1] 
+capm$date <- mdy(capm$Date)
+capm <- capm |>
+  select(siteid = `Site ID`, date, pm25 = `Daily Mean PM2.5 Concentration`, 
+    AQI = `Daily AQI Value`, lon = `Site Longitude`, lat = `Site Latitude`)
+capm <- vect(capm, geom = c("lon", "lat"), crs = "EPSG:4326")
+
+# just keep january, and one observation per station
+camonth <- capm |>
+  filter(month(date)==1) |>
+  group_by(siteid) |>
+  summarize(pm25 = mean(pm25, na.rm = TRUE), .groups = "drop")
+
+# and the shapefile
+ca <- vect("week8files/tl_2020_06_tract.shp")
+# project
+ca <- project(ca, crs(camonth))
+
+ggplot() +
+  geom_spatvector(data = ca, lwd = 0.1, color = "black", fill = NA) +
+  geom_spatvector(data = camonth, color = "red") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+
+## First, let's do IDW!
+
+- Your turn. Try it!
+
+
+
+
+
+
+## Code
+
+```{r}
+#| echo: true
+#| eval: false
+#| crop: true
+#| fig-align: center
+#| message: false
+
+grid <- centroids(ca)
+grid <- idw(camonth$pm25 ~ 1, locations = sf::st_as_sf(camonth), newdata = sf::st_as_sf(grid))
+ca$idw <- grid$var1.pred
+
+ggplot() +
+  geom_spatvector(data = ca, aes(fill = idw), color = NA) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+
+## Map
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+#| message: false
+
+grid <- centroids(ca)
+grid <- idw(camonth$pm25 ~ 1, locations = sf::st_as_sf(camonth), newdata = sf::st_as_sf(grid))
+ca$idw <- grid$var1.pred
+
+ggplot() +
+  geom_spatvector(data = ca, aes(fill = idw), color = NA) +
+  scale_fill_distiller("PM 2.5\n(Jan. 2020)", palette = "Spectral") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+
+## Kriging
+
+- With this new data, we're going to try something new: kriging
+
+- What is kriging?
+  - Kriging is a method of spatial interpolation that uses the spatial correlation between points to estimate values at unobserved locations
+  - It's a bit complicated, but it relies on spatial correlations
+  
+- Importantly, we can use predictors other than just distance
+  - For example, we could use the x and y coordinates of the points as predictors
+  - We could also use other variables that we think are related to pollution levels
+
+
+
+
+
+
+## Kriging steps
+
+1. Create a variogram
+  - A variogram is a plot of the spatial correlation between points as a function of distance
+2. Fit a model to the variogram
+3. Use the model to predict values at unobserved locations
+
+- Small note: we are going to use the log of `pm25` (logs are generally more well behaved)
+
+
+
+
+
+## Kriging
+
+```{r}
+#| echo: true
+#| eval: false
+#| crop: true
+#| fig-align: center
+#| message: false
+# create the variogram
+pm.vgm <- variogram(log(pm25)~1, sf::st_as_sf(camonth)) # calculates sample variogram values 
+# fit the variogram
+pm.fit <- fit.variogram(pm.vgm, model=vgm("Gau")) # fit model
+# create the grid
+grid <- centroids(ca)
+# predict
+pm.kriged <- krige(log(pm25) ~ 1, sf::st_as_sf(camonth), sf::st_as_sf(grid), model=pm.fit)
+
+# put results into the ca shapefile
+ca$krigingresults <- pm.kriged$var1.pred
+```
+
+
+
+
+
+
+
+## Kriging
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+#| message: false
+# create the variogram
+pm.vgm <- variogram(log(pm25)~1, sf::st_as_sf(camonth)) # calculates sample variogram values 
+# fit the variogram
+pm.fit <- fit.variogram(pm.vgm, model=vgm("Gau")) # fit model
+# create the grid
+grid <- centroids(ca)
+# predict
+pm.kriged <- krige(log(pm25) ~ 1, sf::st_as_sf(camonth), sf::st_as_sf(grid), model=pm.fit)
+
+# put results into the ca shapefile
+ca$krigingresults <- pm.kriged$var1.pred
+
+ggplot() +
+  geom_spatvector(data = ca, aes(fill = krigingresults), color = NA) +
+  scale_fill_distiller("PM 2.5 (log)\nJan. 2020", palette = "Spectral") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+
+## Code
+
+- We can also explicitly tell it to use x and y coordinates as predictors
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| fig-align: center
+#| message: false
+
+camonth$x <- geom(camonth)[,"x"]
+camonth$y <- geom(camonth)[,"y"]
+grid <- centroids(ca)
+grid$x <- geom(grid)[,"x"]
+grid$y <- geom(grid)[,"y"]
+
+# create the variogram
+pm.vgm <- variogram(log(pm25)~x+y, sf::st_as_sf(camonth)) # calculates sample variogram values 
+# fit the variogram
+pm.fit <- fit.variogram(pm.vgm, model=vgm("Gau")) # fit model
+# predict
+pm.kriged <- krige(log(pm25) ~ x+y, sf::st_as_sf(camonth), sf::st_as_sf(grid), model=pm.fit)
+
+# put results into the ca shapefile
+ca$krigingresultslonlat <- pm.kriged$var1.pred
+
+```
+
+
+
+
+
+
+
+
+## Comparing results
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig-align: center
+#| message: false
+
+g1 <- ggplot() +
+  geom_spatvector(data = ca, aes(fill = krigingresults), color = NA, show.legend = FALSE) +
+  scale_fill_distiller("PM 2.5 (log)\nJan. 2020", palette = "Spectral") +
+  labs(subtitle = "Panel A: Simple") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+g2 <- ggplot() +
+  geom_spatvector(data = ca, aes(fill = krigingresultslonlat), color = NA, show.legend = FALSE) +
+  scale_fill_distiller("PM 2.5 (log)\nJan. 2020", palette = "Spectral") +
+  labs(subtitle = "Panel B: With lon/lat") +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+plot_grid(g1, g2) + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+
+```
+
+
+
+
+
+
+
+
+## Your turn
+
+- Here's your task for the rest of class:
+  - Download the data for ozone for California (same website as earlier)
+  - Interpolate using inverse distance weighting
+  - Map it
+  - Use the `CApov.csv` file and create some figures (not maps) that show relationships between poverty rates and pollution (ozone)
+
+
+
+
+
+
+
+
+## The example from Georgia
+
+- I have uploaded a `csv` file:
+  - `week8files/GApov.csv`
+
+```{r}
+#| echo: true
+#| eval: true
+#| crop: true
+#| fig-align: center
+#| message: false
+
+gapov <- read_csv("week8files/GApov.csv")
+head(gapov)
+gapov$GEO_ID <- as.character(gapov$GEO_ID)
+gapov$poorrate <- gapov$poortotal/gapov$poptotal
+gapov$poorrateblack <- gapov$poorblack/gapov$popblack
+gapov$poorratehispanic <- gapov$poorhispanic/gapov$pophispanic
+gamonth <- gamonth |>
+  left_join(gapov, by = c("GEOID" = "GEO_ID"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
