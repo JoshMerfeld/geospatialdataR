@@ -1,0 +1,8 @@
+# ignore the the python script
+
+pollpull-venv/
+
+pollutionpull.py
+
+answers.R
+

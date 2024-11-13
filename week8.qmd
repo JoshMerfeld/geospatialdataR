@@ -1054,7 +1054,7 @@ pm.fit <- fit.variogram(pm.vgm, model=vgm("Gau")) # fit model
 # create the grid
 grid <- centroids(ca)
 # predict
-pm.kriged <- krige(log(pm25) ~ 1, sf::st_as_sf(camonth), sf::st_as_sf(grid), model=pm.fit)
+pm.kriged <- krige(log(pm25) ~ 1, sf::st_as_sf(pol), sf::st_as_sf(grid), model=pm.fit)
 
 # put results into the ca shapefile
 ca$krigingresults <- pm.kriged$var1.pred
