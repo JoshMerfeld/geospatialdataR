@@ -1,0 +1,636 @@
+---
+title:  "Geospatial data analysis in R"
+subtitle: "Spatial autocorrelation and review"
+author: "Josh Merfeld"
+institute: "KDI School"
+date: "11-19-2024"
+
+date-format: long
+format: 
+  revealjs:
+    self-contained: true
+    slide-number: false
+    progress: false
+    theme: [serif, custom.scss]
+    width: 1500
+    height: 1500*(9/16)
+    code-copy: true
+    code-fold: show
+    code-overflow: wrap
+    highlight-style: github
+execute:
+  echo: true
+  warnings: false
+  message: false
+---
+
+
+```{r}
+#| label: setup
+#| include: false
+knitr::knit_hooks$set(crop = knitr::hook_pdfcrop)
+
+library(tidyverse)
+library(terra)
+library(tidyterra)
+library(cowplot)
+library(kableExtra)
+
+kdisgreen <- "#006334"
+accent <- "#340063"
+accent2 <- "#633400"
+kdisgray <- "#A7A9AC"
+
+theme_set(theme_bw() +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")))
+
+# Haryana villages
+
+```
+
+
+## What are we doing today?
+
+- Spatial correlations and regressions
+
+- Review of the semester
+
+
+
+
+
+
+## Spatial correlations
+
+- Why do we care about spatial correlations?
+
+. . .
+
+- We saw it last week: it helps with interpolation!
+- For regression: correlation matters for variance estimates (standard errors)
+
+
+
+
+
+
+## Let's start with *temporal* correlations
+
+- Let's look at temporal correlations, first!
+
+```{r}
+
+villages <- vect("week9files/villages.shp")
+villages
+# let's look at pca_p_lit (literate population)
+villages$literate <- villages$pca_p_lit/villages$pca_tot_p
+```
+
+
+
+
+
+
+## Lagged literacy
+
+- We want to look at values in different years
+
+```{r}
+
+table(villages$year)
+villages <- villages |>
+  group_by(shrid2) |>
+  arrange(shrid2, year) |>
+  mutate(lit_lag = lag(literate)) |>
+  ungroup()
+```
+
+
+
+
+
+
+## Lagged literacy
+
+
+```{r}
+#| eval: false
+ggplot() +
+  geom_point(data = as_tibble(villages) |> filter(year>1991), 
+    aes(x = lit_lag, y = literate, color = as.factor(year)), alpha = 0.5) +
+  scale_color_brewer("Year", palette = "Set2") +
+  labs(x = "Lagged literacy", y = "Literacy") +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  theme_bw()
+```
+
+
+
+
+
+
+## Literacy in 1991 and 2001
+
+
+```{r}
+#| echo: false
+#| fig-align: center
+#| crop: true
+ggplot() +
+  geom_point(data = as_tibble(villages) |> filter(year>1991), aes(x = lit_lag, y = literate, color = as.factor(year)), alpha = 0.5) +
+  scale_color_brewer("Year", palette = "Set2") +
+  labs(x = "Lagged literacy", y = "Literacy") +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed")
+```
+
+
+
+
+
+
+## Checking temporal correlation
+
+- Let's check the temporal correlation using `cor`
+
+```{r}
+#| eval: false
+cor(villages$literate, villages$lit_lag, use = "pairwise.complete.obs")
+```
+
+- The correlation is `r round(cor(villages$literate, villages$lit_lag, use = "pairwise.complete.obs"), 3)`
+  - This is very high!
+
+
+
+
+
+
+## How might we visualize spatial correlation?
+
+- How can we visualize spatial correlation?
+
+. . .
+
+- Let's look at the literacy in just one year: 2001
+
+
+
+
+
+
+## How might we visualize spatial correlation?
+
+```{r}
+#| eval: false
+#| fig-align: center
+ggplot() +
+  geom_spatvector(data = villages[villages$year==2001,], 
+    aes(fill = literate), color = NA) +
+  scale_fill_distiller("Literacy", palette = "Spectral")
+```
+
+
+
+
+
+
+## How might we visualize spatial correlation?
+
+```{r}
+#| echo: false
+#| fig-align: center
+#| crop: true
+ggplot() +
+  geom_spatvector(data = villages[villages$year==2001,], aes(fill = literate), color = NA) +
+  scale_fill_distiller("Literacy", palette = "Spectral")
+```
+
+
+
+
+
+
+## And the other two years?
+
+```{r}
+#| echo: false
+#| fig-align: center
+#| crop: true
+g1 <- ggplot() +
+  geom_spatvector(data = villages[villages$year==1991,], aes(fill = literate), color = NA) +
+  scale_fill_distiller("Literacy", palette = "Spectral") +
+  labs(subtitle = "A. 1991")
+g2 <- ggplot() +
+  geom_spatvector(data = villages[villages$year==2011,], aes(fill = literate), color = NA) +
+  scale_fill_distiller("Literacy", palette = "Spectral", limits = c(0, 1)) +
+  labs(subtitle = "B. 2011")
+plot_grid(g1, g2)
+```
+
+
+
+
+
+
+## Spatial correlation is more complicated!
+
+- Temporal correlation is one-dimensional: just correlate today with yesterday
+
+- Spatial correlation is two-dimensional: we need to consider neighbors
+
+
+
+
+
+
+## Let's start simple
+
+- Let's look at *neighbors*
+  - Note: we are going to use a smaller section for this (due to time)
+  - `villagessmall.shp` is a subset of `villages.shp`
+
+```{r}
+villagessmall <- vect("week9files/villagessmall.shp")
+# let's also just use 2001
+villagessmall <- villagessmall[villagessmall$year==2001,]
+mat <- adjacent(villagessmall, symmetrical = TRUE, type = "touches")
+head(mat)
+```
+
+
+
+
+
+
+## Let's start simple
+
+- Matrix of neighbors, let's get POINTS from centroids
+
+```{r}
+#| eval: false
+xy <- centroids(villagessmall[villagessmall$year==2001,])
+points1 <- as_tibble(geom(xy[mat[,1],])[,c("x", "y")])
+points2 <- as_tibble(geom(xy[mat[,2],])[,c("x", "y")])
+
+ggplot() +
+  geom_spatvector(data = villagessmall, fill = NA, color = kdisgray) +
+  geom_spatvector(data = xy, color = kdisgreen, size = 0.5) +
+  geom_segment(aes(x = points1$x, y = points1$y, xend = points2$x, yend = points2$y), color = kdisgreen, lwd = 0.1)
+```
+
+
+
+
+
+
+## Let's start simple
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: center
+#| crop: true
+
+xy <- centroids(villagessmall[villagessmall$year==2001,])
+points1 <- as_tibble(geom(xy[mat[,1],])[,c("x", "y")])
+points2 <- as_tibble(geom(xy[mat[,2],])[,c("x", "y")])
+
+ggplot() +
+  geom_spatvector(data = villagessmall, fill = NA, color = kdisgray) +
+  geom_spatvector(data = xy, color = kdisgreen, size = 0.5) +
+  geom_segment(aes(x = points1$x, y = points1$y, xend = points2$x, yend = points2$y), color = kdisgreen, lwd = 0.1) +
+  labs(x = "", y = "")
+```
+
+
+
+
+
+
+## How do we turn this into a number?
+
+- Okay, great, but it doesn't really tell us anything
+
+- Here is what we are going to do:
+  - We are going to create a matrix that says whether villages are neighbors
+  - We are going to use this to calculate *Moran's I*
+
+
+
+
+
+
+## Adjacency matrix
+
+```{r}
+villagessmall <- villagessmall[villagessmall$year==2001,]
+mat <- adjacent(villagessmall, pairs = FALSE, type = "touches")
+dim(mat)
+villagessmall
+```
+
+
+
+
+
+
+## Moran's I
+
+$$I = \frac{n}{\sum_{i=1}^n (x_i - \bar{x})^2} \frac{\sum_{i=1}^n \sum_{j=1}^n w_{ij} (x_i - \bar{x})(x_j - \bar{x})}{\sum_{i=1}^n \sum_{j=1}^n w_{ij}}$$
+
+- It looks complicated! We need:
+  - The mean of the variable ($\bar{x}$)
+  - The number of observations ($n$)
+  - The weights matrix ($w_{ij}$) - we already have this!
+
+
+
+
+
+
+## Calculations
+
+```{r}
+villagessmall$literacy <- villagessmall$pca_p_lit/villagessmall$pca_tot_p
+n <- nrow(villagessmall)
+x <- villagessmall$literacy
+xbar <- mean(x)
+
+# now we are going to create (x_i - xbar) * (x_j - xbar)
+dx <- x - xbar
+# expand.grid creates all possible combinations
+g <- expand.grid(dx, dx)
+dim(g)
+length(dx)*length(dx)
+```
+
+
+
+
+
+
+## Calculations
+
+```{r}
+# now multiply! for all pairs
+xixj <- g[,1] * g[,2]
+
+# now turn it into a matrix:
+pm <- matrix(xixj, ncol = n)
+dim(pm) # length times length!
+
+# multiply by weights matrix; they are zeros if not adjacent!
+pmw <- pm*mat
+dim(pmw)
+```
+
+
+
+
+
+
+## Calculations
+
+$$I = \frac{n}{\sum_{i=1}^n (x_i - \bar{x})^2} \frac{\sum_{i=1}^n \sum_{j=1}^n w_{ij} (x_i - \bar{x})(x_j - \bar{x})}{\sum_{i=1}^n \sum_{j=1}^n w_{ij}}$$
+
+- `pmw` is $\sum_{i=1}^n \sum_{j=1}^n w_{ij} (x_i - \bar{x})(x_j - \bar{x})$ (part of the numerator!)
+- `sum(pmw)` is the sum of this matrix
+- `sum(mat)` is the sum of the weights matrix (second denominator)
+- `sum(dx^2)` is the first denominator (the variance of the variable)
+
+```{r}
+I <- (n/sum(dx^2)) * (sum(pmw)/sum(mat))
+```
+- The value: `r round(I, 3)`
+
+
+
+
+
+
+## Calculations
+```{r}
+Iterra <- autocor(villagessmall$literacy, mat, "moran")
+I
+Iterra # the same!
+```
+
+
+
+
+
+
+## Is it significant?
+
+- How do we test its significance?
+
+. . .
+
+- We need to simulate the distribution of Moran's I under the null hypothesis of NO correlation!
+
+```{r}
+# Note: we'd usually want to do a lot more than 99!
+m <- sapply(1:99, function(i) {
+    autocor(sample(villagessmall$literacy), mat, "moran")
+})
+m
+```
+
+
+
+
+
+
+## Is it significant?
+
+```{r}
+#| echo: false
+ggplot() + 
+  geom_density(aes(x = m), fill = kdisgray, color = kdisgray, alpha = 0.5) +
+  geom_vline(xintercept = I, color = kdisgreen) +
+  geom_text(aes(x = 0.6, y = 15, label = "Look how far it is from\nthe distribution!"), color = kdisgreen, hjust = 1)
+```
+
+
+
+
+
+
+
+
+## Let's go back to interpolation
+
+```{r}
+remotes::install_github("rspatial/rspat")
+library(rspat)
+counties <- spat_data("counties")
+counties
+```
+
+
+
+
+
+
+
+## Let's go back to interpolation
+
+```{r}
+points <- spat_data("precipitation")
+head(points)
+points <- vect(points, geom = c("LONG", "LAT"), crs = "EPSG:4326")
+names(points)
+# total precipitation
+points$ppttotal <- apply(as_tibble(points[,4:ncol(points)]), 1, sum)
+# altitude in 1000s
+points$ALT <- points$ALT/1000
+```
+
+
+
+
+
+
+
+
+## Let's go back to interpolation
+
+```{r}
+#| echo: false
+#| crop: true
+#| fig-align: center
+ggplot() + 
+  geom_spatvector(data = counties, fill = NA, color = kdisgray) +
+  geom_spatvector(data = points, color = kdisgreen)
+
+```
+
+
+
+
+
+
+
+
+## Precipitation and altitude
+
+- Let's see how altitude correlates with precipitation
+
+```{r}
+lm(ppttotal ~ ALT, data = as_tibble(points))
+```
+
+
+- This regression is *global*; it fits one model everywhere!
+  - But what if effects differ throughout the state?
+
+
+
+
+
+
+
+
+## Spatially weighted regression
+
+```{r}
+#| eval: false
+remotes::install_github("rsbivand/spgwr")
+library(spgwr)
+
+# select "bandwidth"
+bw <- gwr.sel(ppttotal ~ ALT, 
+  data = as.data.frame(points), 
+  coords = geom(points)[,c("x", "y")])
+```
+
+```{r}
+#| echo: false
+library(spgwr)
+bw <- gwr.sel(ppttotal ~ ALT, data=as.data.frame(points), coords=geom(points)[,c("x", "y")])
+```
+
+
+
+
+
+
+
+
+## Spatially weighted regression
+
+```{r}
+r <- rast(counties, res = 0.05)
+r <- rasterize(counties, r)
+newpts <- as.points(r)
+
+g <- gwr(ppttotal ~ ALT, data = as.data.frame(points), 
+  coords = geom(points)[,c("x", "y")], 
+  bandwidth = bw, 
+  fit.points = geom(newpts)[,c("x", "y")])
+g
+```
+
+
+
+
+
+
+
+
+## Spatially weighted regression
+
+```{r}
+#| eval: false
+slope <- intercept <- r
+slope[!is.na(slope)] <- g$SDF$ALT
+intercept[!is.na(intercept)] <- g$SDF$'(Intercept)'
+
+g1 <- ggplot() +
+  geom_spatraster(data = intercept, aes(fill = layer), color = NA) +
+  scale_fill_distiller("Intercept", palette = "Spectral")
+g2 <- ggplot() +
+  geom_spatraster(data = slope, aes(fill = layer), color = NA) +
+  scale_fill_distiller("Slope", palette = "Spectral")
+plot_grid(g1, g2)
+```
+
+
+
+
+
+
+
+
+## Spatially weighted regression
+
+```{r}
+#| echo: false
+#| crop: true
+slope <- intercept <- r
+slope[!is.na(slope)] <- g$SDF$ALT
+intercept[!is.na(intercept)] <- g$SDF$'(Intercept)'
+
+g1 <- ggplot() +
+  geom_spatraster(data = intercept, aes(fill = layer), color = NA) +
+  scale_fill_distiller("Inter.", palette = "Spectral")
+g2 <- ggplot() +
+  geom_spatraster(data = slope, aes(fill = layer), color = NA) +
+  scale_fill_distiller("Slope", palette = "Spectral")
+plot_grid(g1, g2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

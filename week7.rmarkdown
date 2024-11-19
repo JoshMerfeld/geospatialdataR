@@ -1,0 +1,1605 @@
+---
+title:  "Geospatial data analysis in R"
+subtitle: "Raster data II"
+author: "Josh Merfeld"
+institute: "KDI School"
+date: "11-05-2024"
+
+date-format: long
+format: 
+  revealjs:
+    self-contained: true
+    slide-number: false
+    progress: false
+    theme: [serif, custom.scss]
+    width: 1500
+    height: 1500*(9/16)
+    code-copy: true
+    code-fold: show
+    code-overflow: wrap
+    highlight-style: github
+execute:
+  echo: true
+  warnings: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::knit_hooks$set(crop = knitr::hook_pdfcrop)
+
+Sys.setenv("RETICULATE_PYTHON" = paste0(getwd(), "/classenv/bin/python"))
+library(reticulate)
+use_virtualenv(paste0(getwd(), "/classenv"), required=TRUE)
+
+library(tidyverse)
+library(terra)
+library(tidyterra)
+library(cowplot)
+library(kableExtra)
+library(haven)
+
+kdisgreen <- "#006334"
+accent <- "#340063"
+accent2 <- "#633400"
+kdisgray <- "#A7A9AC"
+
+```
+
+
+
+
+## What are we doing today?
+
+- A short review of in-class lab 1
+
+- Installing Python and Positron for the GEE API
+
+
+
+## In-class lab 1
+
+- Let's go over a few things from in-class lab 1
+
+
+- Three things I want to cover:
+  - Making maps look nice
+  - Creating a spatial object from points
+  - Distances
+  
+  
+  
+  
+## Making maps look nice
+
+- let's look at the grid cells:
+
+
+
+```{r}
+#| echo: true
+#| eval: false
+
+grids <- vect("assignments/in-class1/data/seoulgrid.shp")
+ggplot(grids) +
+  geom_spatvector(aes(fill = log(pop))) +
+  scale_fill_distiller("Pop (log)", palette = "YlOrRd", direction = 1) +
+  theme_bw()
+```
+
+
+  
+  
+  
+  
+## Making maps look nice
+
+
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig.align: center
+
+grids <- vect("assignments/in-class1/data/seoulgrid.shp")
+ggplot(grids) +
+  geom_spatvector(aes(fill = log(pop))) +
+  scale_fill_distiller("Pop (log)", palette = "YlOrRd", direction = 1) +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+  
+  
+  
+  
+## Compare the previous map to this one:
+
+
+
+```{r}
+#| echo: true
+#| eval: false
+
+ggplot(grids) +
+  geom_spatvector(aes(fill = log(pop)), color = NA) +
+  scale_fill_distiller("Pop (log)", palette = "YlOrRd", direction = 1) +
+  theme_bw()
+```
+
+
+  
+  
+  
+## Compare the previous map to this one:
+
+
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig.align: center
+
+ggplot(grids) +
+  geom_spatvector(aes(fill = log(pop)), color = NA) +
+  scale_fill_distiller("Pop (log)", palette = "YlOrRd", direction = 1) +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+  
+  
+  
+## Together
+  
+
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig.align: center
+
+g1 <- ggplot(grids) +
+  geom_spatvector(aes(fill = log(pop))) +
+  scale_fill_distiller("Pop (log)", palette = "YlOrRd", direction = 1) +
+  theme_bw() + 
+  labs(subtitle = "With borders") +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+g2 <- ggplot(grids) +
+  geom_spatvector(aes(fill = log(pop)), color = NA) +
+  scale_fill_distiller("Pop (log)", palette = "YlOrRd", direction = 1) +
+  theme_bw() + 
+  labs(subtitle = "Without borders") +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+plot_grid(g1, g2) +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+  
+  
+  
+## Spatial objects from points
+
+- Now let's create a spatial object from points
+
+- Let's use the schools:
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+
+df <- read_csv("assignments/in-class1/data/seoulpoints.csv")
+head(df)
+```
+
+
+  
+  - What is the crs for the points themselves?
+  
+  . . .
+  
+  - They are in longitude/latitude (WGS 84): "EPSG:4326"
+  
+  
+  
+## Creating the object
+
+- We have to specify the CRS based on what the POINTS represent, not what we want it to eventually be
+  - Then we can project it
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+# create the object
+df <- vect(df, geom = c("lon", "lat"), crs = "EPSG:4326")
+# now project it
+df <- project(df, crs(grids))
+```
+
+
+  
+  
+  
+## Compare the output
+
+
+**original object**
+class       : SpatVector 
+geometry    : points 
+dimensions  : 1459, 3  (geometries, attributes)
+extent      : 126.9018, 127.1308, 37.46144, 37.65323  (xmin, xmax, ymin, ymax)
+coord. ref. : lon/lat WGS 84 (EPSG:4326) 
+
+**after projection**
+class       : SpatVector 
+geometry    : points 
+dimensions  : 1459, 3  (geometries, attributes)
+extent      : 947164.1, 967361.8, 1940349, 1961613  (xmin, xmax, ymin, ymax)
+coord. ref. : Korea 2000 / Unified CS (EPSG:5179) 
+
+  
+  
+  
+## Distances
+
+- We now have our grids (we'll get rid of zero pop in a moment0)
+- And we have points in the same CRS
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+
+grids <- grids |>
+  filter(!is.na(pop))
+# create distance matrix for PRIMARY schools
+distances <- distance(grids, df |> filter(fclass=="elementaryschool"))
+dim(distances)
+head(distances)
+```
+
+
+  
+  
+  
+## Distances
+
+- We want to find the MINIMUM distance to a primary school for each grid cell
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+
+closest <- apply(distances, 1, "min")
+grids$closest_primary <- closest
+
+```
+
+
+  
+  
+  
+## The map for primary school
+
+
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig.align: center
+
+ggplot(grids) +
+  geom_spatvector(aes(fill = closest_primary), color = NA) +
+  scale_fill_distiller("Distance\n(m)", palette = "YlOrRd", direction = 1) +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+  
+  
+  
+## The map for primary school
+
+
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig.align: center
+
+ggplot(grids) +
+  geom_density(aes(x = closest_primary)) +
+  theme_bw() + 
+  labs(x = "Distance to closest primary school (m)", y = "Density") +
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+  
+  
+  
+## What if we want to calculate proportion of population?
+
+- Let's create some new values
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+
+totalpop <- sum(grids$pop)
+# within 1km
+popwithin1km <- sum(grids$pop[grids$closest_primary <= 1000])/totalpop
+# within 2km
+popwithin2km <- sum(grids$pop[grids$closest_primary <= 2000])/totalpop
+# within 5km
+popwithin5km <- sum(grids$pop[grids$closest_primary <= 5000])/totalpop
+
+popmat <- matrix(c(popwithin1km, popwithin2km, popwithin5km), nrow = 1)
+rownames(popmat) <- "Primary school"
+colnames(popmat) <- c("1km", "2km", "5km")
+
+```
+
+
+  
+  
+  
+  
+## What if we want to calculate proportion of population?
+
+- Let's create some new values
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+
+kable(popmat, digits = 3, row.names = TRUE) %>%
+  kable_styling("striped", full_width = F) %>%
+  column_spec(2:4, width = "2cm")
+
+```
+
+
+  
+  
+  
+  
+## Your turn
+
+- Try it for middle and high schools!
+
+  
+  
+  
+  
+
+
+## Example code
+
+::: {.panel-tabset}
+## Primary school
+
+``` {.r}
+distances <- distance(grids, df |> filter(fclass=="elementaryschool"))
+distances <- apply(distances, 1, "min")
+
+# within 1km
+popwithin1km <- sum(grids$pop[distances <= 1000])/totalpop
+# within 2km
+popwithin2km <- sum(grids$pop[distances <= 2000])/totalpop
+# within 5km
+popwithin5km <- sum(grids$pop[distances <= 5000])/totalpop
+
+popmat <- matrix(c(popwithin1km, popwithin2km, popwithin5km), nrow = 1)
+rownames(popmat) <- "Primary school"
+
+```
+
+
+## Middle school
+
+``` {.r}
+distancesmid <- distance(grids, df |> filter(fclass=="middleschool"))
+distancesmid <- apply(distancesmid, 1, "min")
+
+# within 1km
+popwithin1kmmid <- sum(grids$pop[distancesmid <= 1000])/totalpop
+# within 2km
+popwithin2kmmid <- sum(grids$pop[distancesmid <= 2000])/totalpop
+# within 5km
+popwithin5kmmid <- sum(grids$pop[distancesmid <= 5000])/totalpop
+
+popmatmid <- matrix(c(popwithin1kmmid, popwithin2kmmid, popwithin5kmmid), nrow = 1)
+rownames(popmatmid) <- "Middle school"
+
+```
+
+## High school
+
+``` {.r}
+distanceshigh <- distance(grids, df |> filter(fclass=="highschool"))
+distanceshigh <- apply(distanceshigh, 1, "min")
+
+# within 1km
+popwithin1kmhigh <- sum(grids$pop[distanceshigh <= 1000])/totalpop
+# within 2km
+popwithin2kmhigh <- sum(grids$pop[distanceshigh <= 2000])/totalpop
+# within 5km
+popwithin5kmhigh <- sum(grids$pop[distanceshigh <= 5000])/totalpop
+
+popmathigh <- matrix(c(popwithin1kmhigh, popwithin2kmhigh, popwithin5kmhigh), nrow = 1)
+rownames(popmathigh) <- "High school"
+
+```
+
+:::
+
+ 
+## The table
+
+
+
+```{r}
+#| echo: false
+#| eval: true
+
+distancesmid <- distance(grids, df |> filter(fclass=="middleschool"))
+distancesmid <- apply(distancesmid, 1, "min")
+
+# within 1km
+popwithin1kmmid <- sum(grids$pop[distancesmid <= 1000])/totalpop
+# within 2km
+popwithin2kmmid <- sum(grids$pop[distancesmid <= 2000])/totalpop
+# within 5km
+popwithin5kmmid <- sum(grids$pop[distancesmid <= 5000])/totalpop
+
+popmatmid <- matrix(c(popwithin1kmmid, popwithin2kmmid, popwithin5kmmid), nrow = 1)
+rownames(popmatmid) <- "Middle school"
+colnames(popmatmid) <- c("1km", "2km", "5km")
+
+distanceshigh <- distance(grids, df |> filter(fclass=="highschool"))
+distanceshigh <- apply(distanceshigh, 1, "min")
+
+# within 1km
+popwithin1kmhigh <- sum(grids$pop[distanceshigh <= 1000])/totalpop
+# within 2km
+popwithin2kmhigh <- sum(grids$pop[distanceshigh <= 2000])/totalpop
+# within 5km
+popwithin5kmhigh <- sum(grids$pop[distanceshigh <= 5000])/totalpop
+
+popmathigh <- matrix(c(popwithin1kmhigh, popwithin2kmhigh, popwithin5kmhigh), nrow = 1)
+rownames(popmathigh) <- "High school"
+colnames(popmathigh) <- c("1km", "2km", "5km")
+
+popmat <- rbind(popmat, popmatmid, popmathigh)
+
+kable(popmat, digits = 3, row.names = TRUE, format = "html") %>%
+  column_spec(1, width = "6cm") %>%
+  column_spec(2:4, width = "3cm")
+
+```
+
+
+
+
+
+  
+  
+  
+# Using Python and the GEE API
+  
+## Just for today, Python
+
+- We are going to:
+  - Install Python
+  - Install Positron
+  
+- You should already have a GEE account from last week
+  
+
+
+
+## Installing Python
+
+- If you already have Python installed, don't install it!
+
+- You can check in the terminal/console:
+
+
+
+```{r}
+#| results: asis
+#| eval: false
+python --version
+```
+
+
+
+- If it returns a version number, you have Python installed
+  - We want it to be `Python 3.XX.X` (some version of python3)
+  
+
+
+## Installing Python
+
+- If it is not downloaded, you have two options:
+  - Download from the [Python website](https://www.python.org/downloads/)
+  - Download from the [Anaconda website](https://www.anaconda.com/products/distribution)
+
+
+- I recommend Anaconda (or miniconda) for beginners
+  
+  
+
+## Installing Positron
+
+- We are going to use the same IDE
+
+- Let's install Positron
+  - Same company that makes RStudio
+  - It's my favorite Python IDE
+  
+- Go to the [Positron website](https://github.com/posit-dev/positron/releases)
+  - First post > Assets > correct version for your OS
+  
+  
+
+## Next steps
+
+- Here's what we are going to do:
+  - Open a folder (maybe make a new one?)
+  - Create a "virtual environment"
+  - Install the packages we need
+  
+  
+
+## Step 1: Open a folder
+
+![](week7assets/positron1.png){fig-align="center"}
+  
+  
+
+## Step 2: Create an environment
+
+- Now let's create a "virtual environment"
+
+![](week7assets/positron2.png){fig-align="center"}
+  
+  
+  
+
+
+
+## Step 2: Create an environment
+
+
+
+```{bash}
+#| results: asis
+#| eval: false
+python -m venv classenv
+```
+
+
+
+- Positron will ask if you want to use the environment
+  - Click "Yes"
+- It will also ask to install the `ipykernel` package
+  - Click "Install"
+
+. . .
+
+- This will create a new folder called `classenv` in your current directory (that you opened/made earlier)
+  - This is where all the packages will be installed
+  
+  
+  
+
+
+
+## Step 2: Create an environment
+
+- Finally, close Positron and reopen it
+
+- In the "Terminal" you should see the name of the environment you just created, something like this:
+
+
+
+```{bash}
+#| results: asis
+#| eval: false
+(classenv) Joshs-MacBook-Pro:geospatialdataR Josh$
+```
+
+
+
+
+
+
+
+## Step 3: Install packages
+
+- We need two separate packages:
+  - `earthengine-api`
+  - `geopandas`
+
+- We do this in the "Terminal"
+
+
+
+```{bash}
+#| results: asis
+#| eval: false
+pip3 install earthengine-api geopandas
+```
+
+
+
+
+
+
+
+## Step 3: Install packages
+
+![](week7assets/positron3.png){fig-align="center"}
+
+
+
+
+
+
+## One last step: create a script!
+
+- In the upper left, you should see "New"
+  - Click it, then click "New File"
+  - Save it as `inclassgee.py` - MAKE SURE to add the `.py` extension!
+
+
+
+
+
+
+## Just like with R, load libraries
+
+
+
+```{python}
+#| echo: true
+#| eval: false
+# load libraries
+import ee                                  # <1>
+import geopandas as gpd                                                            # <2>
+```
+
+
+1. This is the Earth Engine API library
+2. This is the `geopandas` library (you'll see what the `as gpd` does later)
+
+- Note we can create comments just like in `RStudio`
+- You can run them just like in `RStudio` (highlight and press `ctrl/cmd + enter`)
+
+
+
+
+
+
+## We need to initialize the API
+
+- Last week, you created a "project"
+  - You need to figure out its name to use here! (upper-right corner of the code editor on GEE)
+  - This should open a pop-up in your browser
+
+
+
+```{python}
+#| echo: true
+#| eval: false
+ee.Authenticate()
+ee.Initialize(project="ee-geefolder")
+```
+
+
+
+
+
+
+
+
+
+## Searching for data
+
+- NDVI ([GEE link](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD13A3))
+
+
+
+```{python}
+#| echo: true
+#| eval: false
+# Let's look at NDVI
+ndvi = ee.ImageCollection("MODIS/061/MOD13A3")
+
+# we can use "print" and "getInfo()" to look at more information
+# If the above call worked correctly, you should see a bunch of information printed in the console
+print(ndvi.getInfo())
+```
+
+
+
+
+
+
+
+
+## Filtering by date
+
+
+
+```{python}
+#| echo: true
+#| eval: false
+
+# We can also filter the collection by date. Let's look september 2023
+ndvi = ndvi.filterDate("2023-08-01", "2023-08-31")
+
+# for assets that have many bands (raster layers), we can select the specific ones we want:
+ndvi = ndvi.select("NDVI")
+ndvi
+
+# finally, just make sure we have an IMAGE, not an image collection
+ndvi = ndvi.mean()
+ndvi
+```
+
+
+
+
+
+
+
+
+## Filtering by area
+
+- Let's use Korea to pull data
+  - `week7files`: `kgrid.shp`
+  - Going to read this into Python using `geopandas`
+
+
+
+```{python}
+#| echo: true
+#| eval: false
+
+# let's load the shapefile (note the use of "gpd" instead of "geopandas"!)
+shape = gpd.read_file("week7files/kgrid.shp")
+# make sure it is in lat/lon (project it)
+shape = shape.to_crs("EPSG:4326")
+# let's get the total bounds for the shapefile
+bounds = shape.total_bounds
+bounds
+```
+
+
+
+
+
+
+
+## Downloading
+
+
+
+```{python}
+#| echo: true
+#| eval: false
+
+# let's create a bounding box in earth engine. Note the syntax (xmin, ymin, xmax, ymax)
+# this does not accept an array (which is what bounds was), so we will extract the individual components
+# Also note that indexing in python starts at 0, not 1! bounds[0] gives the first value in the array
+bbox = ee.Geometry.BBox(bounds[0], bounds[1], bounds[2], bounds[3])
+
+task = ee.batch.Export.image.toDrive(image=ndvi,
+    description="krndvi",
+    scale=1000, # set scale the same as the raster's resolution (you can find this on GEE)
+    region=bbox,
+    crs="EPSG:4326",
+    fileFormat="GeoTIFF")
+# start the task. You must do this for GEE to actually run the command.
+task.start()
+# can check the status of the task
+task.status()
+```
+
+
+
+
+
+
+
+## Some notes on downloading
+
+- You do not have to check the status
+  - It will finish automatically
+- You can start multiple tasks
+- Some tasks will take longer than others
+  - One way to speed it up: use a larger resolution (e.g. 100 instead of 10)
+
+
+
+
+
+
+
+## Land classification
+
+- Now let's download land classification for the most recent year
+
+- Find the appropriate GEE id
+  - Let's use the Copernicus Global Land Cover Layers
+  
+. . .
+
+- What is the id?
+- What are the available dates?
+
+
+
+
+
+
+
+## Land classification
+
+![](week7assets/gee1.png){fig-align="center"}
+
+
+
+
+
+
+
+## Land classification
+
+
+
+```{python}
+#| echo: true
+#| eval: false
+# land classification
+lc = ee.ImageCollection("COPERNICUS/Landcover/100m/Proba-V-C3/Global")
+
+# Only 2021
+lc = lc.filterDate("2019-01-01", "2019-12-31")
+# just make sure we have an IMAGE, not an image collection
+lc = lc.first()
+# let's try something different: download the discrete_classification only
+lc = lc.select("discrete_classification")
+
+task = ee.batch.Export.image.toDrive(image=lc,
+    description="krlc",
+    scale=100, # Let's do 100 (for time and memory)
+    region=bbox,
+    crs="EPSG:4326",
+    fileFormat="GeoTIFF")
+task.start()
+task.status()
+```
+
+
+
+
+
+
+
+
+
+## Land classification
+
+- While we wait for that to download, I've already downloaded it for you!
+  - `week7files/krlc.tf`
+  
+- Let's look at it in `R`, using `terra`
+
+
+
+
+
+
+
+## The raster
+
+- What are we looking at here?
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+lc <- rast("week7files/krlc.tif")
+head(lc)
+```
+
+
+
+. . .
+
+- We need to turn this into a factor!
+
+
+
+
+
+
+
+
+## This isn't straightforward...
+
+- This discrete classification variable is not numeric
+  - We need to find out what the values represent
+  - How?
+  
+. . .
+
+- Let's check the GEE page for this data
+
+
+
+
+
+
+
+## Land classification
+
+![](week7assets/gee2.png){fig-align="center"}
+
+
+
+
+
+
+
+## How to get the values?
+
+- We could of course write them all by hand!
+
+- For example, let's create a new variable that just has 8 values:
+  - 0: No data
+  - 1: Shrubs/plants
+  - 2: Agricultural land
+  - 3: Urban
+  - 4: Bare land
+  - 5: Snow/ice
+  - 6: Water
+  - 7: Forest
+
+
+
+
+
+
+
+## Creating the data
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+
+factorvalues <- data.frame(value = 0:7, 
+  class = c("No data", "Shrubs/plants", "Agricultural land", "Urban", "Bare land", "Snow/ice", "Water", "Forest"))
+factorvalues
+
+```
+
+
+
+
+
+
+
+
+
+## Now: change values of raster
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+lcnew <- lc |> 
+  mutate(discrete_classification = case_when(
+  discrete_classification == 0 ~ 0,
+  discrete_classification %in% c(20, 30, 90, 100) ~ 1,
+  discrete_classification == 40 ~ 2,
+  discrete_classification == 50 ~ 3,
+  discrete_classification == 60 ~ 4,
+  discrete_classification == 70 ~ 5,
+  discrete_classification %in% c(80, 200)  ~ 6,
+  TRUE ~ 7
+))
+```
+
+```{r}
+#| echo: true
+#| eval: true
+# Double check
+summary(lcnew)
+```
+
+
+
+
+
+
+
+
+
+## Now: create labels and assign
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+cls<- data.frame(id = 0:7,
+  cover = c("No data", "Shrubs/plants", "Agricultural land", "Urban", "Bare land", "Snow/ice", "Water", "Forest"))
+levels(lcnew) <- cls
+lcnew
+levels(lcnew)
+```
+
+
+
+
+
+
+
+
+
+## Plot it
+
+
+
+```{r}
+#| echo: true
+#| eval: false
+ggplot() +
+  geom_spatraster(data = lcnew, aes(fill = cover)) +
+  # Note we need fewer than 8 colors! Only 7 show up in our raster
+  scale_fill_manual("Classification", values = c("#ffbb22", "#f096ff", "#fa0000", "#b4b4b4", "#f0f0f0", "#0032c8", "#58481f")) +
+  theme_bw()
+```
+
+
+
+
+
+
+
+
+
+## Plot it
+
+
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig.align: center
+ggplot() +
+  geom_spatraster(data = lcnew, aes(fill = cover)) +
+  scale_fill_manual("Classification", values = c("#ffbb22", "#f096ff", "#fa0000", "#b4b4b4", "#0032c8", "#009900")) +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+
+
+## But what if we want ALL of the classes?
+
+- Do you want to do them all by hand?
+  - I assume not.
+  
+- So what are we to do?
+
+. . .
+
+- The GEE API in Python has all the info!
+
+
+
+
+
+
+
+
+
+
+
+## Back to python
+
+
+
+```{python}
+#| echo: false
+#| eval: true
+#| message: false
+import ee
+import geopandas as gpd
+import pandas as pd
+ee.Authenticate()
+ee.Initialize(project="ee-geefolder")
+lc = ee.ImageCollection("COPERNICUS/Landcover/100m/Proba-V-C3/Global")
+# Only 2021
+lc = lc.filterDate("2019-01-01", "2019-12-31")
+# just make sure we have an IMAGE, not an image collection
+lc = lc.first()
+# let's try something different: download the discrete_classification only
+lc = lc.select("discrete_classification")
+```
+
+```{python}
+#| echo: true
+#| eval: true
+lcinfo = lc.getInfo()
+type(lcinfo)
+lcinfo
+```
+
+
+
+
+
+
+
+
+
+
+
+
+## "properties" is what we want
+
+
+
+```{python}
+#| echo: true
+#| eval: true
+import pandas as pd
+lcprop = lcinfo["properties"]
+lcprop = pd.DataFrame.from_dict({"id": lcprop["discrete_classification_class_values"], 
+  "cover": lcprop["discrete_classification_class_names"]})
+lcprop
+
+```
+
+
+
+
+
+
+
+
+
+
+
+## Let's save it as a `.csv` file
+
+
+
+```{python}
+#| echo: true
+#| eval: true
+
+lcprop.to_csv("week7files/lcprop.csv", index = False)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+## Bring it into `R`
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+lcprop <- read_csv("week7files/lcprop.csv")
+head(lcprop)
+lcnew <- lc
+levels(lcnew) <- data.frame(lcprop[,1:2])
+```
+
+
+
+
+
+
+
+
+
+
+
+## Quick plot
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+plot(lcnew)
+```
+
+
+
+
+
+
+
+
+
+
+
+## It already has the colors!
+
+- The information on colors is actually already in the raster!
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+coltab(lcnew)
+```
+
+
+
+
+
+
+
+
+## Plot it
+
+
+
+```{r}
+#| echo: true
+#| eval: false
+ggplot() +
+  geom_spatraster(data = lcnew, aes(fill = cover), show.legend = FALSE) +
+  theme_bw()
+```
+
+
+
+
+
+
+
+
+
+## Plot it
+
+
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+#| fig.align: center
+ggplot() +
+  geom_spatraster(data = lcnew, aes(fill = cover), show.legend = FALSE) +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+## Adding a legend (need to make it small)
+
+
+
+```{r}
+#| echo: true
+#| eval: false
+#| fig.align: center
+ggplot() +
+  geom_spatraster(data = lcnew, aes(fill = cover)) +
+  theme_bw() +
+  labs(fill = "Land cover") +
+  theme(legend.text=element_text(size=rel(0.5)), legend.key.size = unit(0.25, "cm"))
+```
+
+
+
+
+
+
+
+## Adding a legend (need to make it small)
+
+
+
+```{r}
+#| echo: false
+#| eval: true
+#| crop: true
+ggplot() +
+  geom_spatraster(data = lcnew, aes(fill = cover)) +
+  theme_bw() +
+  labs(fill = "Land cover") +
+  theme(legend.text=element_text(size = rel(0.5)), legend.key.size = unit(0.25, "cm")) + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
+
+
+
+
+
+
+## Extracting the data
+
+- Let's see what happens if we extract the data using `exactextractr`
+- We need to read the shapefile using `sf`, NOT `terra`
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+#| fig.align: center
+library(exactextractr)
+kgrid <- sf::read_sf("week7files/kgrid.shp") # this way I don't have to load sf!
+# reproject
+lcnew <- project(lcnew, crs(kgrid))
+extracted <- exact_extract(lcnew, kgrid, progress = FALSE)
+# it's a list!
+class(extracted)
+```
+
+
+
+
+
+
+
+## Extracting the data
+
+- The list is the same length as the number of grid cells
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+#| fig.align: center
+nrow(kgrid)
+length(extracted)
+# here's the first one
+extracted[[1]]
+```
+
+
+
+
+
+
+
+## Extracting the data
+
+- The first element is ALL of the raster cells that overlap with the first grid cell
+  - The total area for the first grid cell is `r round(sf::st_area(kgrid[1,]), 0)`
+  - The total "coverage_fraction" in the first grid cell is `r round(sum(extracted[[1]]$coverage_fraction), 0)`
+  - How can we find the area of each grid cell?
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+#| fig.align: center
+res(lcnew)
+```
+
+
+
+- Area of each grid cell is `89.49499x89.49499` or `r round(89.49499^2, 0)`
+- So total area is `89.49499^2 * sum(extracted[[1]]$coverage_fraction)` = `r round(89.49499^2 * sum(extracted[[1]]$coverage_fraction), 0)`
+
+
+
+
+
+## What do we want to do?
+
+- We need to go through each element in the list and:
+  - Calculate the proportion of the total area that is covered by each class
+  - Importantly, we need to make sure we include ALL of the values, even if they are zero (and do not show up in the list)
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+#| fig.align: center
+example <- as_tibble(extracted[[1]])
+example <- example |>
+  complete(value = unique(lc)$discrete_classification)
+summary(example)
+```
+
+
+
+
+
+
+
+## Aggregate to value
+
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+#| fig.align: center
+example$coverage_fraction[is.na(example$coverage_fraction)] <- 0
+example <- example |>
+  group_by(value) |>
+  summarize(coverage_fraction = sum(coverage_fraction)) |>
+  ungroup() |>
+  mutate(coverage_fraction = coverage_fraction/sum(coverage_fraction))
+head(example)
+```
+
+
+
+
+
+
+
+## Reshape wide
+
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+#| fig.align: center
+# long to wide
+example <- example |>
+  pivot_wider(names_from = value, values_from = coverage_fraction,
+    names_prefix = "coveragefraction")
+example
+```
+
+
+
+
+
+
+
+## We need to do that for the ENTIRE list!
+
+
+
+
+```{r}
+#| echo: true
+#| eval: false
+#| fig.align: center
+wrapper <- function(x){
+  x <- as_tibble(x)
+  x <- x |>
+    complete(value = unique(lc)$discrete_classification)
+  x$coverage_fraction[is.na(x$coverage_fraction)] <- 0
+  x <- x |>
+    group_by(value) |>
+    summarize(coverage_fraction = sum(coverage_fraction)) |>
+    ungroup() |>
+    mutate(coverage_fraction = coverage_fraction/sum(coverage_fraction)) |>
+    pivot_wider(names_from = value, values_from = coverage_fraction,
+      names_prefix = "coveragefraction")
+}
+# Takes a LONG time! so I've uploaded it for you
+extracted <- lapply(extracted, wrapper)
+extracted <- bind_rows(extracted)
+```
+
+
+
+
+
+
+
+## Now we can add those values to `kgrid`
+
+
+
+
+```{r}
+#| echo: true
+#| eval: true
+#| fig.align: center
+extracted <- read_csv("week7files/extracted.csv")
+kgrid <- vect("week7files/kgrid.shp")
+kgrid <- cbind(kgrid, extracted)
+names(kgrid)
+```
+
+
+
+
+
+
+
+## Now we can add those values to `kgrid`
+
+
+
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig.align: center
+#| crop: true
+ggplot() +
+  geom_spatvector(data = kgrid, aes(fill = coveragefraction50), color = NA) +
+  scale_fill_distiller("Percent\nurban", palette = "YlOrRd", direction = 1) +
+  theme_bw() + 
+  theme(plot.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb")) + 
+  theme(legend.background = element_rect(fill = "#f0f1eb", color = "#f0f1eb"))
+```
+
