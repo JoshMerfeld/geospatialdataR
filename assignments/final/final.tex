@@ -1,0 +1,185 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+\input{header.tex}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Final Exam}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{Geospatial data analysis in R\\
+KDI School Fall 2024}
+\author{}
+\date{\vspace{-2.5em}2024-11-29}
+
+\begin{document}
+\maketitle
+
+\textbf{Due date: Thursday, December 5th at 11:59pm}
+
+Please work by yourself. As before, please submit the following files on eKDIS:
+
+\begin{itemize}
+\tightlist
+\item
+  Your R Markdown file
+\item
+  Your knitted PDF file
+\item
+  Any other scripts you used to complete the assignment
+\end{itemize}
+
+I would like all of your answers to be in a single markdown file. However, you are welcome to use another script for any of the analyses, if you would prefer. If you do, please include the script in your submission.
+
+\section{Files}\label{files}
+
+Here is the list of files in the folder:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{gambiarastershapefile.shp}: This is a shapefile of a grid of Gambia. Each grid is made up of hexagons that are 0.025 degrees from edge to edge.
+\item
+  \texttt{gambiaroads.shp}: This is a shapefile of primary roads throughout the country.
+\item
+  \texttt{gmbpop.tif}: This is a raster of population in Gambia.
+\item
+  \texttt{households.csv}: This has the location of a random sample of households.
+\item
+  \texttt{prices.csv}: This has the prices of maize at different markets throughout the country.
+\end{itemize}
+
+\section{Tasks}\label{tasks}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  First, create a map -- a single map -- with:
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  The grid of Gambia
+\item
+  The roads
+\item
+  The location of households
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\item
+  Next, please extract the population values from the raster to the grid. Please create a map of grid cells with fill colors based on the population values.
+\item
+  Now, please find the distance from each household to the nearest road. Create a histogram of these distances.
+\item
+  Load the price data.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Create Voronoi polygons for the markets throughout the country.
+\item
+  Create a map of the Voronoi polygons with the \emph{household} locations (not market locations).
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{4}
+\tightlist
+\item
+  The final task is the toughest.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  We want to create a raster for maize prices in the country.
+\item
+  Please use inverse distance weighting to create a raster. Create a (square) raster with a resolution of 0.025 degrees.
+\item
+  Plot this final raster with a color scale of your choice.
+\item
+  Find the average maize price in each polygon (from \texttt{gambiarastershapefile.shp}) using the raster you created. Create a map of these average prices.
+\end{itemize}
+
+\end{document}

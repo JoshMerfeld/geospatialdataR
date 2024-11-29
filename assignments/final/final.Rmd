@@ -1,0 +1,72 @@
+---
+title: |
+        | Final Exam
+subtitle: |
+        | Geospatial data analysis in R
+        | KDI School Fall 2024
+date: "`r Sys.Date()`"
+# Output type and options (no TOC and yes fig captions)
+output:
+  bookdown::pdf_document2: 
+    toc: false
+    fig_caption: yes
+    # This also keeps the .tex file that is used to make the output (we will eventually need this for publication)
+    keep_tex: yes
+
+# This includes latex arguments
+header-includes:
+  - \input{header.tex}
+
+---
+
+**Due date: Thursday, December 5th at 11:59pm**
+
+Please work by yourself. As before, please submit the following files on eKDIS:
+
+- Your R Markdown file
+- Your knitted PDF file
+- Any other scripts you used to complete the assignment
+
+I would like all of your answers to be in a single markdown file. However, you are welcome to use another script for any of the analyses, if you would prefer. If you do, please include the script in your submission.
+
+# Files
+
+Here is the list of files in the folder:
+
+- `gambiarastershapefile.shp`: This is a shapefile of a grid of Gambia. Each grid is made up of hexagons that are 0.025 degrees from edge to edge.
+- `gambiaroads.shp`: This is a shapefile of primary roads throughout the country.
+- `gmbpop.tif`: This is a raster of population in Gambia.
+- `households.csv`: This has the location of a random sample of households.
+- `prices.csv`: This has the prices of maize at different markets throughout the country.
+
+
+# Tasks
+
+1. First, create a map -- a single map -- with:
+
+  - The grid of Gambia
+  - The roads
+  - The location of households
+
+2. Next, please extract the population values from the raster to the grid. Please create a map of grid cells with fill colors based on the population values.
+
+3. Now, please find the distance from each household to the nearest road. Create a histogram of these distances.
+
+4. Load the price data.
+
+  - Create Voronoi polygons for the markets throughout the country.
+  - Create a map of the Voronoi polygons with the *household* locations (not market locations).
+  
+5. The final task is the toughest.
+
+  - We want to create a raster for maize prices in the country.
+  - Please use inverse distance weighting to create a raster. Create a (square) raster with a resolution of 0.025 degrees.
+  - Plot this final raster with a color scale of your choice.
+  - Find the average maize price in each polygon (from `gambiarastershapefile.shp`) using the raster you created. Create a map of these average prices.
+  
+
+
+
+
+
+
